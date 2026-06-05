@@ -1,0 +1,570 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VTK Multi-Device Demo · PC</title>
+<style>
+  :root {
+    --navy: #1E2761;
+    --navy-dark: #0F1838;
+    --amber: #D4A574;
+    --amber-bright: #E8B97D;
+    --amber-light: #FAEEDA;
+    --amber-txt: #92400E;
+    --pc-cyan: #5DADE2;
+    --pc-cyan-dark: #1B5575;
+    --pc-cyan-light: #E1F0FA;
+    --ice: #F0F4FA;
+    --text-dark: #1F2937;
+    --text-mid: #475569;
+    --text-muted: #64748B;
+    --border: #E2E8F0;
+    --green: #166534;
+    --green-bg: #DCFCE7;
+    --red: #991B1B;
+    --red-bg: #FEE2E2;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Malgun Gothic', 'Apple SD Gothic Neo', sans-serif;
+    background: linear-gradient(135deg, var(--ice) 0%, #ffffff 100%);
+    color: var(--text-dark);
+    min-height: 100vh;
+    padding: 20px;
+  }
+  .container { max-width: 1280px; margin: 0 auto; }
+  .header {
+    background: var(--navy);
+    color: white;
+    padding: 24px 32px;
+    border-radius: 12px;
+    margin-bottom: 24px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .header h1 { font-size: 22px; letter-spacing: 1px; }
+  .header .badge {
+    background: var(--amber);
+    color: var(--navy-dark);
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-size: 13px;
+    font-weight: bold;
+    letter-spacing: 2px;
+  }
+  .panel {
+    background: white;
+    border-radius: 12px;
+    padding: 28px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    border: 1px solid var(--border);
+    margin-bottom: 16px;
+  }
+  .panel h2 {
+    font-size: 18px;
+    color: var(--navy);
+    margin-bottom: 16px;
+    padding-bottom: 12px;
+    border-bottom: 2px solid var(--ice);
+  }
+  .main-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+    margin-bottom: 24px;
+  }
+  .reg-area {
+    background: var(--amber-light);
+    border: 2px dashed var(--amber);
+    padding: 20px;
+    border-radius: 8px;
+    margin-bottom: 16px;
+  }
+  .reg-area label {
+    display: block;
+    color: var(--amber-txt);
+    font-weight: bold;
+    margin-bottom: 6px;
+    font-size: 14px;
+  }
+  .reg-area input {
+    width: 100%;
+    padding: 10px 14px;
+    border: 2px solid var(--amber);
+    border-radius: 6px;
+    font-size: 18px;
+    font-family: 'Consolas', monospace;
+    text-align: center;
+    letter-spacing: 4px;
+    margin-bottom: 10px;
+  }
+  .qr-section { text-align: center; }
+  .qr-box {
+    background: white;
+    padding: 24px;
+    border: 2px solid var(--border);
+    border-radius: 12px;
+    display: inline-block;
+    margin: 12px 0;
+    min-height: 280px;
+    min-width: 280px;
+  }
+  .qr-instruction {
+    background: var(--amber-light);
+    border-left: 4px solid var(--amber);
+    padding: 14px 18px;
+    border-radius: 6px;
+    margin-top: 16px;
+    text-align: left;
+    font-size: 14px;
+    line-height: 1.7;
+    color: var(--amber-txt);
+  }
+  .mobile-url-display {
+    background: var(--ice);
+    padding: 10px 14px;
+    border-radius: 6px;
+    margin-top: 12px;
+    font-family: 'Consolas', monospace;
+    font-size: 12px;
+    color: var(--navy-dark);
+    word-break: break-all;
+    text-align: left;
+  }
+  .pad-a {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+    max-width: 360px;
+    margin: 16px auto;
+  }
+  .a-cell {
+    aspect-ratio: 1;
+    background: var(--pc-cyan-light);
+    border: 2px solid var(--pc-cyan);
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.15s;
+    font-size: 24px;
+    color: var(--pc-cyan-dark);
+    user-select: none;
+    font-weight: bold;
+  }
+  .a-cell:hover {
+    background: var(--pc-cyan);
+    color: white;
+    transform: scale(1.03);
+  }
+  .a-cell.clicked {
+    background: var(--navy);
+    color: var(--amber-bright);
+    border-color: var(--navy);
+  }
+  .a-cell.empty {
+    background: #f8f8f8;
+    border: 2px dashed #d0d0d0;
+    cursor: default;
+  }
+  .a-cell.empty:hover {
+    background: #f8f8f8;
+    color: transparent;
+    transform: none;
+  }
+  .pad-a.disabled .a-cell { pointer-events: none; opacity: 0.5; }
+  .input-display {
+    background: var(--ice);
+    padding: 14px 18px;
+    border-radius: 8px;
+    margin: 16px 0;
+    font-family: 'Consolas', monospace;
+    font-size: 14px;
+    color: var(--navy-dark);
+    min-height: 48px;
+    display: flex;
+    align-items: center;
+  }
+  .progress {
+    display: flex;
+    gap: 8px;
+    justify-content: center;
+    margin: 12px 0;
+  }
+  .dot {
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: var(--border);
+    transition: background 0.2s;
+  }
+  .dot.filled { background: var(--navy); }
+  .controls {
+    display: flex;
+    gap: 12px;
+    margin-top: 16px;
+  }
+  .btn {
+    flex: 1;
+    padding: 14px 20px;
+    border: none;
+    border-radius: 8px;
+    font-size: 15px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-family: inherit;
+  }
+  .btn-primary { background: var(--navy); color: white; }
+  .btn-primary:hover { background: var(--navy-dark); }
+  .btn-secondary { background: var(--border); color: var(--text-dark); }
+  .btn-secondary:hover { background: var(--text-muted); color: white; }
+  .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+  .result {
+    margin-top: 16px;
+    padding: 16px 20px;
+    border-radius: 8px;
+    font-weight: bold;
+    text-align: center;
+    font-size: 15px;
+  }
+  .result.success { background: var(--green-bg); color: var(--green); }
+  .result.failure { background: var(--red-bg); color: var(--red); }
+  .pairing-status {
+    background: var(--ice);
+    padding: 14px 18px;
+    border-radius: 8px;
+    margin-bottom: 16px;
+    font-size: 14px;
+    color: var(--text-mid);
+  }
+  .pairing-status.connected { background: var(--green-bg); color: var(--green); font-weight: bold; }
+  .log-panel {
+    background: var(--navy-dark);
+    color: var(--amber-bright);
+    padding: 20px;
+    border-radius: 12px;
+    font-family: 'Consolas', monospace;
+    font-size: 12px;
+    max-height: 220px;
+    overflow-y: auto;
+    margin-bottom: 24px;
+  }
+  .log-panel h3 {
+    color: var(--amber);
+    font-size: 13px;
+    margin-bottom: 12px;
+    letter-spacing: 2px;
+  }
+  .log-line { margin: 4px 0; line-height: 1.5; }
+  .log-time { color: var(--text-muted); }
+  .session-info {
+    background: var(--ice);
+    padding: 12px 16px;
+    border-radius: 8px;
+    font-family: 'Consolas', monospace;
+    font-size: 12px;
+    color: var(--text-mid);
+    margin-bottom: 16px;
+    word-break: break-all;
+  }
+  .session-info .label {
+    display: inline-block;
+    color: var(--navy);
+    font-weight: bold;
+    margin-right: 8px;
+  }
+  .footer {
+    text-align: center;
+    color: var(--text-muted);
+    font-size: 12px;
+    padding: 16px;
+    margin-top: 24px;
+  }
+  @media (max-width: 900px) {
+    .main-grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <div class="header">
+    <h1>VTK 멀티디바이스 시연 · PC (Live)</h1>
+    <span class="badge">LEVEL 3 · HIGH ASSURANCE</span>
+  </div>
+
+  <!-- 등록 단계 -->
+  <div class="panel" id="regPanel">
+    <h2>1단계 · 사용자 등록 (시연 시작 전 1회)</h2>
+    <div class="reg-area">
+      <label>사용자 ID</label>
+      <input type="text" id="userIdInput" value="demo-user" autocomplete="off">
+      <label style="margin-top:12px">시연용 4자리 비밀번호 (예: 7259)</label>
+      <input type="text" id="passwordInput" maxlength="4" pattern="[0-9]{4}" placeholder="0000" autocomplete="off">
+    </div>
+    <button class="btn btn-primary" onclick="registerUser()">등록 완료 → 인증 시작</button>
+  </div>
+
+  <!-- 인증 단계 -->
+  <div id="authPanel" style="display:none;">
+
+    <div class="session-info">
+      <span class="label">SESSION:</span><span id="sessionId">-</span>
+      &nbsp;&nbsp;<span class="label">USER:</span><span id="currentUser">-</span>
+    </div>
+
+    <div class="pairing-status" id="pairingStatus">
+      🔄 모바일 페어링 대기 중... QR 코드를 휴대폰으로 스캔하세요
+    </div>
+
+    <div class="main-grid">
+
+      <div class="panel qr-section">
+        <h2>① 휴대폰으로 QR 코드 스캔</h2>
+        <div class="qr-box" id="qrBox">
+          <div style="padding:60px 0;color:var(--text-muted)">QR 코드 로딩 중...</div>
+        </div>
+        <div class="qr-instruction">
+          <strong>📱 위원님께 안내</strong><br>
+          1. 휴대폰 카메라 앱을 여세요<br>
+          2. 위 QR 코드를 비추세요<br>
+          3. 표시되는 링크를 탭하세요<br>
+          4. 모바일에 숫자표시 키패드 B가 표시됩니다
+        </div>
+        <div class="mobile-url-display" id="mobileUrlDisplay" style="display:none;">
+          <strong>대체 URL (QR 스캔 안 될 경우):</strong><br>
+          <span id="mobileUrlText"></span>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h2>② 키패드 A (무표시) — 모바일과 같은 위치를 클릭하세요</h2>
+        <div class="progress" id="progressDots">
+          <div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div>
+        </div>
+        <div class="pad-a disabled" id="padA"></div>
+        <div class="input-display" id="inputDisplay">좌표 시퀀스 C: (모바일 페어링 대기 중)</div>
+        <div class="controls">
+          <button class="btn btn-secondary" onclick="resetInput()">↺ 다시 입력</button>
+          <button class="btn btn-primary" id="submitBtn" onclick="submitAuth()" disabled>인증 제출</button>
+        </div>
+        <div id="resultArea"></div>
+      </div>
+
+    </div>
+
+    <div class="controls" style="margin-bottom: 24px;">
+      <button class="btn btn-secondary" onclick="startAuth()">🎲 새 챌린지 (새 π 생성)</button>
+    </div>
+
+    <div class="log-panel">
+      <h3>┃ MESSAGE FLOW LOG (실시간 서버 통신) ┃</h3>
+      <div id="logArea"></div>
+    </div>
+
+  </div>
+
+  <div class="footer">
+    VTK Multi-Device Demo · Live Server with Socket.IO<br>
+    옵틱라이트 주식회사 · PG502 검토용 시연 · 2026
+  </div>
+
+</div>
+
+<script src="/socket.io/socket.io.js"></script>
+<script>
+const socket = io();
+
+let currentUser = null;
+let currentSid = null;
+let userInput = [];
+let mobilePaired = false;
+const passwordLength = 4;
+
+function log(msg, type = 'info') {
+  const time = new Date().toLocaleTimeString('ko-KR');
+  const colors = { info: '#E8B97D', success: '#86EFAC', warning: '#FCA5A5', system: '#94A3B8' };
+  const line = document.createElement('div');
+  line.className = 'log-line';
+  line.innerHTML = `<span class="log-time">[${time}]</span> <span style="color:${colors[type]}">${msg}</span>`;
+  const area = document.getElementById('logArea');
+  area.appendChild(line);
+  area.scrollTop = area.scrollHeight;
+}
+
+async function registerUser() {
+  const userId = document.getElementById('userIdInput').value.trim();
+  const password = document.getElementById('passwordInput').value.trim();
+  if (!userId || !/^\d{4}$/.test(password)) {
+    alert('사용자 ID와 4자리 숫자 비밀번호를 입력하세요');
+    return;
+  }
+  try {
+    const res = await fetch('/register', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userId, password })
+    });
+    const data = await res.json();
+    if (!data.ok) {
+      alert('등록 실패: ' + (data.error || 'unknown'));
+      return;
+    }
+    currentUser = userId;
+    document.getElementById('currentUser').textContent = userId;
+    document.getElementById('regPanel').style.display = 'none';
+    document.getElementById('authPanel').style.display = 'block';
+    log(`등록 완료 — 서버에 커밋먼트만 저장 (평문 D 폐기)`, 'success');
+    startAuth();
+  } catch (err) {
+    alert('서버 연결 실패: ' + err.message);
+  }
+}
+
+async function startAuth() {
+  try {
+    const res = await fetch('/auth/start', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userId: currentUser })
+    });
+    const data = await res.json();
+    if (data.error) {
+      alert('인증 시작 실패: ' + data.error);
+      return;
+    }
+    currentSid = data.sid;
+    userInput = [];
+    mobilePaired = false;
+    document.getElementById('sessionId').textContent = currentSid;
+    document.getElementById('pairingStatus').className = 'pairing-status';
+    document.getElementById('pairingStatus').textContent = '🔄 모바일 페어링 대기 중... QR 코드를 휴대폰으로 스캔하세요';
+    document.getElementById('padA').classList.add('disabled');
+    document.getElementById('resultArea').innerHTML = '';
+    document.getElementById('submitBtn').disabled = true;
+
+    log(`━━━ 새 인증 세션 시작 ━━━`, 'info');
+    log(`세션 ID: ${currentSid}`, 'system');
+    log(`Server: 새 π 생성 (Channel ①로 모바일에만 전달 예정)`, 'success');
+
+    socket.emit('join-pc', { sid: currentSid });
+    log(`Socket.IO: PC join`, 'system');
+
+    // QR 코드 생성 - 짧은 모바일 URL만 인코딩
+    const qrSize = 240;
+    const qrApiUrl = `https://api.qrserver.com/v1/create-qr-code/?size=${qrSize}x${qrSize}&data=${encodeURIComponent(data.mobileUrl)}&color=1E2761&bgcolor=ffffff&margin=10`;
+    document.getElementById('qrBox').innerHTML = `
+      <img src="${qrApiUrl}" width="${qrSize}" height="${qrSize}" alt="QR" style="display:block; border-radius:8px;"
+           onerror="this.parentNode.innerHTML='<div style=\\'padding:40px;color:#991B1B\\'>QR 생성 실패</div>'">
+    `;
+
+    // 대체 URL 표시
+    document.getElementById('mobileUrlText').textContent = data.mobileUrl;
+    document.getElementById('mobileUrlDisplay').style.display = 'block';
+
+    renderPadA();
+    updateInputDisplay();
+    updateProgressDots();
+  } catch (err) {
+    log(`오류: ${err.message}`, 'warning');
+  }
+}
+
+socket.on('mobile-paired', () => {
+  mobilePaired = true;
+  document.getElementById('pairingStatus').className = 'pairing-status connected';
+  document.getElementById('pairingStatus').innerHTML = '✓ 모바일 페어링 완료 · π는 모바일에만 전송됨 (PC는 π를 알지 못함)';
+  document.getElementById('padA').classList.remove('disabled');
+  document.getElementById('inputDisplay').textContent = '좌표 시퀀스 C: (대기 중...)';
+  log(`Socket.IO: 모바일 페어링 완료 신호 수신`, 'success');
+  log(`Channel ①: Server → Mobile에 π 전송됨`, 'info');
+  log(`Channel ②: Server → PC에 빈 A 패드(무표시) (π는 PC로 전송 안 됨)`, 'info');
+});
+
+function renderPadA() {
+  const padA = document.getElementById('padA');
+  padA.innerHTML = '';
+  for (let i = 0; i < 12; i++) {
+    const cell = document.createElement('div');
+    if (i === 9 || i === 11) {
+      cell.className = 'a-cell empty';
+    } else {
+      cell.className = 'a-cell';
+      cell.dataset.index = i;
+      cell.textContent = '·';
+      cell.onclick = () => handleCellClick(i, cell);
+    }
+    padA.appendChild(cell);
+  }
+}
+
+function handleCellClick(idx, cellElem) {
+  if (!mobilePaired || userInput.length >= passwordLength) return;
+  cellElem.classList.add('clicked');
+  setTimeout(() => cellElem.classList.remove('clicked'), 300);
+  userInput.push(idx);
+  log(`사용자: A 패드 좌표 [${idx}] 클릭`, 'info');
+  updateInputDisplay();
+  updateProgressDots();
+  if (userInput.length === passwordLength) {
+    document.getElementById('submitBtn').disabled = false;
+    log(`좌표 시퀀스 C 입력 완료 → 인증 제출 대기`, 'success');
+  }
+}
+
+function updateInputDisplay() {
+  const display = document.getElementById('inputDisplay');
+  if (userInput.length === 0) {
+    display.textContent = mobilePaired ? '좌표 시퀀스 C: (대기 중...)' : '좌표 시퀀스 C: (모바일 페어링 대기 중)';
+  } else {
+    display.textContent = `좌표 시퀀스 C: (${userInput.join(', ')})`;
+  }
+}
+
+function updateProgressDots() {
+  document.querySelectorAll('.dot').forEach((dot, i) => {
+    if (i < userInput.length) dot.classList.add('filled');
+    else dot.classList.remove('filled');
+  });
+}
+
+function resetInput() {
+  userInput = [];
+  updateInputDisplay();
+  updateProgressDots();
+  document.getElementById('submitBtn').disabled = true;
+  document.getElementById('resultArea').innerHTML = '';
+  log(`입력 초기화`, 'system');
+}
+
+async function submitAuth() {
+  log(`Channel ② → Server: 좌표 시퀀스 C = (${userInput.join(',')}) 전송`, 'info');
+  try {
+    const res = await fetch('/auth/submit', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ sid: currentSid, cSequence: userInput })
+    });
+    const data = await res.json();
+    log(`Server: D' = π⁻¹(C) 계산 → "${data.computedPassword}"`, 'system');
+    log(`Server: H(D' ∥ salt) 비교`, 'system');
+    const resultArea = document.getElementById('resultArea');
+    if (data.ok) {
+      log(`✓ 커밋먼트 일치 → 인증 성공`, 'success');
+      log(`Server: π, D' 메모리에서 즉시 폐기`, 'system');
+      resultArea.innerHTML = '<div class="result success">✓ 인증 성공 — 비밀번호 평문이 어디에도 흐르지 않음</div>';
+    } else {
+      log(`✗ 인증 실패`, 'warning');
+      resultArea.innerHTML = '<div class="result failure">✗ 인증 실패 — 좌표를 다시 확인하세요</div>';
+    }
+  } catch (err) {
+    log(`오류: ${err.message}`, 'warning');
+  }
+}
+</script>
+</body>
+</html>

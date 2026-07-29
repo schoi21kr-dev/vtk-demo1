@@ -406,40 +406,10 @@ function showError(title, msg) {
 }
 
 function renderPadA() {
-  const pi = curPi, password = activePassword;
-  if (!pi || !password) return;
-  const numericIndices = [0, 1, 2, 3, 4, 5, 6, 7, 8, 10];
-  const cellLayout = new Array(12).fill(null);
-  for (let digit = 0; digit < 10; digit++) {
-    const cellIdx = numericIndices[pi[digit]];
-    cellLayout[cellIdx] = digit;
-  }
-
-  const highlighted = [];
-  for (let i = 0; i < password.length; i++) {
-    const digit = parseInt(password[i]);
-    highlighted.push(cellLayout.indexOf(digit));
-  }
+  if (!curPi || !activePassword) return;
 
   let html = `
     <div class="pw-hint">${t('pwHint')}</div>
-    <div class="pad-a">
-  `;
-
-  for (let i = 0; i < 12; i++) {
-    const digit = cellLayout[i];
-    const isEmpty = digit === null;
-    const order = highlighted.indexOf(i);
-    const isH = order !== -1;
-    let cls = 'a-cell';
-    if (isEmpty) cls += ' empty';
-    if (isH) cls += ' highlighted';
-    const attr = isH ? `data-order="${order + 1}"` : '';
-    html += `<div class="${cls}" ${attr}>${isEmpty ? '' : digit}</div>`;
-  }
-  html += `</div>`;
-
-  html += `
     <div id="resultBanner"></div>
     <div class="pw-change" id="pwChange" style="display:${pwChangeUnlocked ? 'block' : 'none'};">
       <a href="#" id="pwToggle" class="pw-toggle">${t('pwChangeLink')}</a>

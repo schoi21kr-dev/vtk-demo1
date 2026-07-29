@@ -572,7 +572,7 @@ async function startAuth() {
 
     // QR 코드 생성 - 휴대폰도 PC와 같은 언어로 열리도록 lang 부착
     const mobileUrl = data.mobileUrl + (data.mobileUrl.includes('?') ? '&' : '?') + 'lang=' + LANG;
-    const qrSize = 240;
+    const qrSize = 400;
     const qrApiUrl = `https://api.qrserver.com/v1/create-qr-code/?size=${qrSize}x${qrSize}&data=${encodeURIComponent(mobileUrl)}&color=1E2761&bgcolor=ffffff&margin=10`;
     document.getElementById('qrBox').innerHTML = `
       <img src="${qrApiUrl}" width="${qrSize}" height="${qrSize}" alt="QR" style="display:block; border-radius:8px;"

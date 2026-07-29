@@ -329,7 +329,6 @@
           <div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div>
         </div>
         <div class="pad-b disabled" id="padB"></div>
-        <div class="input-display" id="inputDisplay">좌표 시퀀스 C: (휴대폰 페어링 대기 중)</div>
         <div class="controls">
           <button class="btn btn-secondary" onclick="resetInput()" data-i18n="btnReset">↺ 다시 입력</button>
           <button class="btn btn-primary" id="submitBtn" onclick="submitAuth()" disabled data-i18n="btnSubmit">인증 제출</button>
@@ -337,11 +336,6 @@
         <div id="resultArea"></div>
       </div>
 
-    </div>
-
-    <div class="controls" style="margin-bottom: 24px;">
-      <button class="btn btn-secondary" onclick="manualReshuffle()" data-i18n="btnReshuffle">🎲 VNK 재배치 (새 π)</button>
-      <button class="btn btn-secondary" onclick="startAuth()" data-i18n="btnNewChallenge">🔄 새 세션 (QR 재발급)</button>
     </div>
 
   </div>
@@ -599,10 +593,23 @@ socket.on('user-registered', ({ userId }) => {
   if (userId) { currentUser = userId; document.getElementById('currentUser').textContent = userId; }
   setPairingStatus('pairingRegistered', true);
   document.getElementById('padB').classList.remove('disabled');
-  document.getElementById('inputDisplay').textContent = t('seqWaitInput');
   log('logRegistered', 'success');
   log('logChan1', 'info');
   log('logChan2', 'info');
+});
+
+// 휴대폰 '새 세션(QR 재발급)' 요청 → PC가 새 세션·QR 재발급
+socket.on('renew-session', () => {
+  startAuth();
+});
+
+// 휴대폰에서 수동 재배치 → PC 입력만 초기화 (π는 PC로 오지 않음)
+socket.on('reshuffled', () => {
+  userInput = [];
+  updateProgressDots();
+  document.getElementById('submitBtn').disabled = true;
+  document.getElementById('resultArea').innerHTML = '';
+  updateInputDisplay();
 });
 
 function renderPadB() {
@@ -638,6 +645,7 @@ function handleCellClick(idx, cellElem) {
 
 function updateInputDisplay() {
   const display = document.getElementById('inputDisplay');
+  if (!display) return;
   if (userInput.length === 0) {
     display.textContent = userRegistered ? t('seqWaitInput') : t('seqWaitPair');
   } else {

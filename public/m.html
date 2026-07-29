@@ -228,6 +228,9 @@
   .pw-msg { font-size: 12px; margin-top: 8px; min-height: 14px; }
   .pw-msg.ok { color: #86EFAC; }
   .pw-msg.ng { color: #FCA5A5; }
+  .phone-controls { display: flex; gap: 8px; margin-top: 16px; }
+  .btn-ctl { flex: 1; padding: 11px 8px; border: 1px solid rgba(255,255,255,0.18); border-radius: 10px; background: rgba(255,255,255,0.08); color: #fff; font-size: 13px; font-weight: bold; cursor: pointer; font-family: inherit; }
+  .btn-ctl:active { transform: scale(.98); }
   .error-screen {
     text-align: center;
     padding: 40px 20px;
@@ -297,7 +300,10 @@ const I18N = {
     pwInvalid: '✗ 숫자 4자리를 입력하세요',
     pwChanged: '🔑 비밀번호 변경됨 — 새 위치를 확인하세요',
     regFailed: '✗ 등록 실패 — 다시 시도하세요',
-    pwHint: '기본 1357 · 인증 성공 후 아래에서 변경 가능'
+    pwHint: '기본 1357 · 인증 성공 후 아래에서 변경 가능',
+    btnReshuffle: '🎲 VNK 재배치 (새 π)',
+    btnNewSession: '🔄 새 세션 (QR 재발급)',
+    newSessionAsked: '🔄 PC에 새 QR이 발급되었습니다 — 새 QR을 다시 스캔하세요'
   },
   en: {
     headerSub: 'Channel ① · Mobile · VNK (numbered)',
@@ -325,7 +331,10 @@ const I18N = {
     pwInvalid: '✗ Enter exactly 4 digits',
     pwChanged: '🔑 Password changed — check the new positions',
     regFailed: '✗ Registration failed — please try again',
-    pwHint: 'Default 1357 · changeable below after a successful authentication'
+    pwHint: 'Default 1357 · changeable below after a successful authentication',
+    btnReshuffle: '🎲 Reshuffle VNK (new π)',
+    btnNewSession: '🔄 New session (reissue QR)',
+    newSessionAsked: '🔄 A new QR has been issued on the PC — scan the new QR again'
   }
 };
 let LANG = (function () {
@@ -435,6 +444,10 @@ function renderPadA() {
       </div>
       <div id="pwMsg" class="pw-msg"></div>
     </div>
+    <div class="phone-controls">
+      <button class="btn-ctl" id="reshuffleBtn">${t('btnReshuffle')}</button>
+      <button class="btn-ctl" id="newSessionBtn">${t('btnNewSession')}</button>
+    </div>
   `;
 
   document.getElementById('content').innerHTML = html;
@@ -452,7 +465,28 @@ function renderPadA() {
   const apply = document.getElementById('pwApply');
   if (apply) apply.onclick = applyPasswordChange;
 
+  const rb = document.getElementById('reshuffleBtn');
+  if (rb) rb.onclick = phoneReshuffle;
+  const nb = document.getElementById('newSessionBtn');
+  if (nb) nb.onclick = phoneNewSession;
+
   rendered = true;
+}
+
+// 휴대폰에서 VNK 재배치 요청 — 서버가 새 π를 push하면 pi-updated로 재렌더됨
+async function phoneReshuffle() {
+  try {
+    await fetch('/auth/reshuffle', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ sid })
+    });
+  } catch (err) {}
+}
+
+// 휴대폰에서 새 세션 요청 — PC가 새 QR을 재발급하도록 신호
+function phoneNewSession() {
+  socket.emit('request-new-session', { sid });
+  flashMsg(t('newSessionAsked'));
 }
 
 // 비밀번호 변경 (이번 세션에만 적용, 저장 안 함) — 새 비밀번호로 재등록 후 VNK 재렌더

@@ -198,8 +198,9 @@ app.post('/auth/reshuffle', (req, res) => {
 
   // 새 π는 휴대폰(VNK)에만 전송 (auto 플래그 없음 → 수동 재배치 로그)
   io.to(`mobile-${sid}`).emit('pi-updated', { pi: session.pi });
+  // PC에는 π를 보내지 않되, 입력 초기화를 위해 재배치 발생만 통보
+  io.to(`pc-${sid}`).emit('reshuffled');
 
-  // PC에는 π를 보내지 않음 (재배치 성공 여부만 반환)
   res.json({ ok: true });
 });
 
@@ -212,6 +213,13 @@ io.on('connection', (socket) => {
   socket.on('join-mobile', ({ sid }) => {
     socket.join(`mobile-${sid}`);
     console.log(`[Socket] Mobile joined ${sid}`);
+  });
+  // 휴대폰 '새 세션(QR 재발급)' 요청 → 해당 세션의 PC에 재발급 신호
+  socket.on('request-new-session', ({ sid }) => {
+    if (sid) {
+      io.to(`pc-${sid}`).emit('renew-session');
+      console.log(`[Socket] 휴대폰 새 세션 요청 → PC(${sid})에 renew-session`);
+    }
   });
 });
 

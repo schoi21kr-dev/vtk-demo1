@@ -320,21 +320,6 @@
         <div class="qr-box" id="qrBox">
           <div style="padding:60px 0;color:var(--text-muted)">QR 코드 로딩 중...</div>
         </div>
-        <div class="qr-instruction" data-i18n-html="qrGuide">
-          <strong>📱 안내</strong><br>
-          1. 휴대폰 카메라 앱을 여세요<br>
-          2. 위 QR 코드를 비추세요<br>
-          3. 표시되는 링크를 탭하세요<br>
-          4. 휴대폰에 VNK(숫자표시)가 나타납니다
-        </div>
-        <div class="mobile-url-display" id="mobileUrlDisplay" style="display:none;">
-          <strong data-i18n="altUrlLabel">대체 URL (QR 스캔 안 될 경우):</strong><br>
-          <span id="mobileUrlText"></span>
-        </div>
-        <div class="log-panel" style="margin-top:16px; margin-bottom:0;">
-          <h3 data-i18n="logTitle">┃ MESSAGE FLOW LOG (실시간 서버 통신) ┃</h3>
-          <div id="logArea"></div>
-        </div>
       </div>
 
       <div class="panel">
@@ -537,11 +522,6 @@ function applyLanguage() {
   updateInputDisplay();
   renderLog();
   renderResult();
-  // 대체 URL의 lang 파라미터도 현재 언어로 갱신(휴대폰 미페어링 시)
-  const urlEl = document.getElementById('mobileUrlText');
-  if (urlEl && urlEl.textContent.includes('m.html')) {
-    urlEl.textContent = urlEl.textContent.replace(/([?&])lang=(ko|en)/, '$1lang=' + LANG);
-  }
 }
 function setLanguage(lang) {
   if (lang === LANG) return;
@@ -598,10 +578,6 @@ async function startAuth() {
       <img src="${qrApiUrl}" width="${qrSize}" height="${qrSize}" alt="QR" style="display:block; border-radius:8px;"
            onerror="this.parentNode.innerHTML='<div style=\\'padding:40px;color:#991B1B\\'>'+t('qrFailed')+'</div>'">
     `;
-
-    // 대체 URL 표시
-    document.getElementById('mobileUrlText').textContent = mobileUrl;
-    document.getElementById('mobileUrlDisplay').style.display = 'block';
 
     renderPadB();
     updateInputDisplay();

@@ -407,7 +407,7 @@ function showError(title, msg) {
 
 function renderPadA() {
   if (!curPi || !activePassword) return;
-  // VNK(숫자표시) 복원 — π로 섞인 숫자판만 표시, 비밀번호 위치 강조는 없음
+  // VNK(숫자표시) — π로 섞인 숫자판 표시, 비밀번호 위치 강조는 없음
   const numericIndices = [0, 1, 2, 3, 4, 5, 6, 7, 8, 10];
   const cellLayout = new Array(12).fill(null);
   for (let digit = 0; digit < 10; digit++) {

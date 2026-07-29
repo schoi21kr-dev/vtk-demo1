@@ -421,14 +421,7 @@ function renderPadA() {
     highlighted.push(cellLayout.indexOf(digit));
   }
 
-  const positionLabels = t('pos');
-
   let html = `
-    <div class="instruction">${t('instruction')}</div>
-    <div class="password-display">
-      <div class="label">${t('pwLabel')}</div>
-      <div class="value">${password}</div>
-    </div>
     <div class="pw-hint">${t('pwHint')}</div>
     <div class="pad-a">
   `;
@@ -446,12 +439,6 @@ function renderPadA() {
   }
   html += `</div>`;
 
-  html += `<div class="position-guide"><strong>${t('posGuide')}</strong><br>`;
-  for (let i = 0; i < password.length; i++) {
-    html += `${i + 1}. <strong>${password[i]}</strong> → ${positionLabels[highlighted[i]] || (t('cellPrefix') + highlighted[i])}<br>`;
-  }
-  html += `</div>`;
-
   html += `
     <div id="resultBanner"></div>
     <div class="pw-change" id="pwChange" style="display:${pwChangeUnlocked ? 'block' : 'none'};">
@@ -461,12 +448,6 @@ function renderPadA() {
         <button class="btn-apply" id="pwApply">${t('pwChangeApply')}</button>
       </div>
       <div id="pwMsg" class="pw-msg"></div>
-    </div>
-    <div class="channel-info">
-      <span class="label">SESSION:</span> ${sid.substring(0, 16)}<br>
-      <span class="label">π:</span> [${pi.join(',')}]<br>
-      <span class="label">CHANNEL:</span> ① Mobile (서버 → 모바일)<br>
-      <span class="label">NOTE:</span> ${t('noteChannel')}
     </div>
   `;
 

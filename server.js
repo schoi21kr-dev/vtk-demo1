@@ -56,35 +56,42 @@ app.get('/health', (req, res) => {
   res.json({ status: 'ok', timestamp: Date.now() });
 });
 
-// 사용자 등록 (시연용)
+// 사용자 등록 (시연용) — 데모1 4단계: 등록을 휴대폰에서 수행
 app.post('/register', (req, res) => {
-  const { userId, password } = req.body;
+  const { userId, password, sid } = req.body;
   if (!userId || !/^\d{4,8}$/.test(password)) {
     return res.status(400).json({ error: '잘못된 입력' });
   }
   const salt = generateSalt();
   const commitment = sha256(password + salt);
-  // 시연 단순화를 위해 평문도 보관 (모바일에서 비밀번호 위치 강조용)
+  // 시연 단순화를 위해 평문도 보관 (휴대폰 VNK에서 비밀번호 위치 강조용)
   users.set(userId, { salt, commitment, password });
   console.log(`[Register] ${userId} commitment=${commitment.substring(0, 12)}...`);
+  // 휴대폰에서 등록한 경우: 세션과 사용자 연결 후 PC에 통보 → PC 키패드 활성화
+  if (sid && sessions.has(sid)) {
+    const session = sessions.get(sid);
+    session.userId = userId;
+    session.status = 'waiting_for_pc_input';
+    io.to(`pc-${sid}`).emit('user-registered', { userId });
+  }
   res.json({ ok: true });
 });
 
-// PC가 인증 세션 시작
+// PC가 인증 세션 시작 — 등록 전에도 세션(π·QR)을 만들 수 있음 (등록은 휴대폰에서)
 app.post('/auth/start', (req, res) => {
   const { userId } = req.body;
-  if (!userId || !users.has(userId)) {
-    return res.status(404).json({ error: '등록되지 않은 사용자' });
+  if (!userId) {
+    return res.status(400).json({ error: '사용자 ID 필요' });
   }
   const sid = generateSessionId();
   const pi = generatePi();
   sessions.set(sid, {
     sid, pi, userId,
     mobileConnected: false,
-    status: 'waiting_for_mobile',
+    status: 'waiting_for_registration',
     createdAt: Date.now()
   });
-  console.log(`[AuthStart] session=${sid} userId=${userId}`);
+  console.log(`[AuthStart] session=${sid} userId=${userId} (등록 대기)`);
   // PC에는 세션 ID와 모바일 페어링 URL만 반환 (π는 PC로 보내지 않음)
   const baseUrl = `${req.protocol}://${req.get('host')}`;
   res.json({
@@ -99,21 +106,20 @@ app.get('/api/pair/:sid', (req, res) => {
   const { sid } = req.params;
   const session = sessions.get(sid);
   if (!session) return res.status(404).json({ error: '세션 만료 또는 없음' });
-  const user = users.get(session.userId);
-  if (!user) return res.status(404).json({ error: '사용자 정보 없음' });
+  const user = users.get(session.userId);   // 아직 등록 전이면 null 가능
 
   session.mobileConnected = true;
-  session.status = 'waiting_for_pc_input';
 
-  // PC에 모바일 페어링 완료 통보
+  // PC에 모바일 페어링 완료 통보 (실제 등록은 이후 휴대폰에서)
   io.to(`pc-${sid}`).emit('mobile-paired');
   console.log(`[Pair] session=${sid} 모바일 연결됨`);
 
-  // 모바일에 π와 비밀번호 정보 전달 (Channel ①)
+  // 모바일에 π 전달 (Channel ①). 비밀번호는 등록 전이면 null
   res.json({
     sid,
     pi: session.pi,
-    password: user.password, // 시연용: 비밀번호 위치 강조
+    password: user ? user.password : null, // 시연용: 비밀번호 위치 강조
+    registered: !!user,
     n: 4
   });
 });
@@ -150,6 +156,9 @@ app.post('/auth/submit', (req, res) => {
 
   // 커밋먼트 비교
   const user = users.get(session.userId);
+  if (!user) {
+    return res.json({ ok: false, reason: '미등록 — 휴대폰에서 비밀번호를 먼저 등록하세요' });
+  }
   const computedCommitment = sha256(enteredPassword + user.salt);
   const success = computedCommitment === user.commitment;
 

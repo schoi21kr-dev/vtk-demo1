@@ -218,6 +218,16 @@
     transition: opacity 0.5s ease;
   }
   .reshuffle-flash.fade { opacity: 0; }
+  .pw-hint { font-size: 11px; color: var(--text-muted); text-align: center; margin: 2px 0 8px; }
+  .pw-change { margin-top: 16px; text-align: center; }
+  .pw-toggle { color: rgba(255,255,255,0.6); font-size: 13px; text-decoration: none; border-bottom: 1px dotted rgba(255,255,255,0.35); cursor: pointer; }
+  .pw-toggle:hover { color: var(--amber-bright); }
+  .pw-panel { display: flex; gap: 8px; margin-top: 12px; }
+  .pw-panel input { flex: 1; min-width: 0; padding: 10px 12px; border: 1px solid rgba(255,255,255,0.2); border-radius: 8px; background: rgba(0,0,0,0.25); color: #fff; font-size: 16px; font-family: 'Consolas', monospace; text-align: center; letter-spacing: 4px; }
+  .btn-apply { flex: 0 0 auto; padding: 10px 18px; border: none; border-radius: 8px; background: var(--amber); color: var(--navy-dark); font-size: 14px; font-weight: bold; cursor: pointer; font-family: inherit; }
+  .pw-msg { font-size: 12px; margin-top: 8px; min-height: 14px; }
+  .pw-msg.ok { color: #86EFAC; }
+  .pw-msg.ng { color: #FCA5A5; }
   .error-screen {
     text-align: center;
     padding: 40px 20px;
@@ -252,6 +262,13 @@ function getSid() {
 const sid = getSid();
 const socket = io();
 
+// 데모1 4단계: 등록을 휴대폰으로 이전 + 기본 비밀번호 1357 + 변경 기능
+const DEFAULT_PASSWORD = '1357';        // 기본 비밀번호
+let activePassword = DEFAULT_PASSWORD;   // 이번 세션 비밀번호 (저장하지 않음)
+let pwChangeUnlocked = false;            // 인증 1회 성공 후에만 변경 허용
+let curPi = null;                        // 현재 π
+let rendered = false;                    // VNK 최초 렌더 여부
+
 // ─────────── 다국어 사전 ───────────
 const I18N = {
   ko: {
@@ -273,7 +290,14 @@ const I18N = {
     pos: ['좌상단','상단','우상단','좌측','중앙','우측','좌하단','하단','우하단','','하단중앙',''],
     cellPrefix: '셀 ',
     flashAuto: '🔄 인증 완료 · 새 배치로 자동 재배치됨 — 새 위치를 확인하세요',
-    flashManual: '🔄 새 배치로 재배치됨 — 새 위치를 확인하세요'
+    flashManual: '🔄 새 배치로 재배치됨 — 새 위치를 확인하세요',
+    pwChangeLink: '⚙ 비밀번호 변경',
+    pwChangePlaceholder: '새 비밀번호 4자리',
+    pwChangeApply: '적용',
+    pwInvalid: '✗ 숫자 4자리를 입력하세요',
+    pwChanged: '🔑 비밀번호 변경됨 — 새 위치를 확인하세요',
+    regFailed: '✗ 등록 실패 — 다시 시도하세요',
+    pwHint: '기본 1357 · 인증 성공 후 아래에서 변경 가능'
   },
   en: {
     headerSub: 'Channel ① · Mobile · VNK (numbered)',
@@ -294,7 +318,14 @@ const I18N = {
     pos: ['top-left','top','top-right','left','center','right','bottom-left','bottom','bottom-right','','bottom-center',''],
     cellPrefix: 'cell ',
     flashAuto: '🔄 Authentication complete · auto-reshuffled to a new layout — check the new positions',
-    flashManual: '🔄 Reshuffled to a new layout — check the new positions'
+    flashManual: '🔄 Reshuffled to a new layout — check the new positions',
+    pwChangeLink: '⚙ Change password',
+    pwChangePlaceholder: 'New 4-digit password',
+    pwChangeApply: 'Apply',
+    pwInvalid: '✗ Enter exactly 4 digits',
+    pwChanged: '🔑 Password changed — check the new positions',
+    regFailed: '✗ Registration failed — please try again',
+    pwHint: 'Default 1357 · changeable below after a successful authentication'
   }
 };
 let LANG = (function () {
@@ -304,7 +335,6 @@ let LANG = (function () {
 })();
 function t(key) { return (I18N[LANG] && I18N[LANG][key] !== undefined) ? I18N[LANG][key] : I18N.ko[key]; }
 
-let padData = null;         // renderPadA에 넘어온 data 보관(언어 전환 시 재렌더)
 let lastResult = null;      // 인증 결과 배너 상태
 function applyLanguage() {
   document.documentElement.lang = LANG;
@@ -313,7 +343,7 @@ function applyLanguage() {
   const sub = document.getElementById('headerSub'); if (sub) sub.textContent = t('headerSub');
   const badge = document.getElementById('statusBadge');
   if (badge && badge.classList.contains('live')) badge.textContent = t('statusLive');
-  if (padData) renderPadA(padData);   // 안내·라벨·위치를 현재 언어로 다시 그림
+  if (rendered) renderPadA();   // 안내·라벨·위치를 현재 언어로 다시 그림
 }
 function setLanguage(lang) {
   if (lang === LANG) return;
@@ -337,12 +367,32 @@ async function init() {
       return;
     }
     const data = await res.json();
+    curPi = data.pi;
+    // 이전 세션에 이미 등록돼 있으면 그 값을 쓰되, 기본은 1357
+    if (data.registered && data.password != null) activePassword = String(data.password);
     socket.emit('join-mobile', { sid });
     document.getElementById('statusBadge').className = 'badge live';
     document.getElementById('statusBadge').textContent = t('statusLive');
-    renderPadA(data);
+    // 데모1 4단계: 휴대폰에서 비밀번호(기본 1357) 등록 → 서버가 PC에 user-registered 통보
+    await registerPassword(activePassword);
+    renderPadA();
   } catch (err) {
     showError(t('errConn'), err.message);
+  }
+}
+
+// 서버에 비밀번호 등록(재등록) — 커밋먼트만 저장, 세션과 연결
+async function registerPassword(pw) {
+  try {
+    const res = await fetch('/register', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userId: 'demo-user', password: pw, sid })
+    });
+    const d = await res.json();
+    return res.ok && d.ok;
+  } catch (err) {
+    return false;
   }
 }
 
@@ -355,9 +405,9 @@ function showError(title, msg) {
   `;
 }
 
-function renderPadA(data) {
-  padData = data;
-  const { pi, password } = data;
+function renderPadA() {
+  const pi = curPi, password = activePassword;
+  if (!pi || !password) return;
   const numericIndices = [0, 1, 2, 3, 4, 5, 6, 7, 8, 10];
   const cellLayout = new Array(12).fill(null);
   for (let digit = 0; digit < 10; digit++) {
@@ -379,6 +429,7 @@ function renderPadA(data) {
       <div class="label">${t('pwLabel')}</div>
       <div class="value">${password}</div>
     </div>
+    <div class="pw-hint">${t('pwHint')}</div>
     <div class="pad-a">
   `;
 
@@ -403,6 +454,14 @@ function renderPadA(data) {
 
   html += `
     <div id="resultBanner"></div>
+    <div class="pw-change" id="pwChange" style="display:${pwChangeUnlocked ? 'block' : 'none'};">
+      <a href="#" id="pwToggle" class="pw-toggle">${t('pwChangeLink')}</a>
+      <div id="pwPanel" class="pw-panel" style="display:none;">
+        <input type="text" id="pwNew" inputmode="numeric" maxlength="4" placeholder="${t('pwChangePlaceholder')}" autocomplete="off">
+        <button class="btn-apply" id="pwApply">${t('pwChangeApply')}</button>
+      </div>
+      <div id="pwMsg" class="pw-msg"></div>
+    </div>
     <div class="channel-info">
       <span class="label">SESSION:</span> ${sid.substring(0, 16)}<br>
       <span class="label">π:</span> [${pi.join(',')}]<br>
@@ -412,12 +471,53 @@ function renderPadA(data) {
   `;
 
   document.getElementById('content').innerHTML = html;
+
+  // 비밀번호 변경 UI 배선 (인증 성공 후에만 노출됨)
+  const toggle = document.getElementById('pwToggle');
+  if (toggle) {
+    toggle.onclick = (e) => {
+      e.preventDefault();
+      const panel = document.getElementById('pwPanel');
+      panel.style.display = (panel.style.display === 'none') ? 'flex' : 'none';
+      if (panel.style.display === 'flex') document.getElementById('pwNew').focus();
+    };
+  }
+  const apply = document.getElementById('pwApply');
+  if (apply) apply.onclick = applyPasswordChange;
+
+  rendered = true;
+}
+
+// 비밀번호 변경 (이번 세션에만 적용, 저장 안 함) — 새 비밀번호로 재등록 후 VNK 재렌더
+async function applyPasswordChange() {
+  const el = document.getElementById('pwNew');
+  const msg = document.getElementById('pwMsg');
+  const v = (el.value || '').trim();
+  if (!/^\d{4}$/.test(v)) {
+    msg.className = 'pw-msg ng';
+    msg.textContent = t('pwInvalid');
+    return;
+  }
+  const ok = await registerPassword(v);
+  if (!ok) {
+    msg.className = 'pw-msg ng';
+    msg.textContent = t('regFailed');
+    return;
+  }
+  activePassword = v;      // 이번 세션에만 반영 (새 QR·새로고침 시 기본 1357로 복귀)
+  renderPadA();            // 새 비밀번호 위치로 VNK 재렌더
+  flashMsg(t('pwChanged'));
 }
 
 socket.on('auth-result', ({ success }) => {
+  lastResult = success;
+  if (success) {
+    pwChangeUnlocked = true;                        // 인증 1회 성공 → 비밀번호 변경 허용
+    const box = document.getElementById('pwChange');
+    if (box) box.style.display = 'block';
+  }
   const banner = document.getElementById('resultBanner');
   if (!banner) return;
-  lastResult = success;
   banner.innerHTML = success
     ? '<div class="result-banner success">' + t('resultSuccess') + '</div>'
     : '<div class="result-banner failure">' + t('resultFailure') + '</div>';
@@ -425,18 +525,18 @@ socket.on('auth-result', ({ success }) => {
 
 // 서버가 새 π를 밀어주면(인증 성공 시 자동 재배치 / 수동 재배치) VNK를 새 위치로 다시 그림
 socket.on('pi-updated', ({ pi: newPi, auto }) => {
-  if (!newPi || !padData) return;
-  padData = Object.assign({}, padData, { pi: newPi });
-  renderPadA(padData);              // 저장된 비밀번호로 새 위치 재계산·재렌더
-  flashReshuffle(auto);
+  if (!newPi || !rendered) return;
+  curPi = newPi;
+  renderPadA();                     // 현재 비밀번호로 새 위치 재계산·재렌더
+  flashMsg(auto ? t('flashAuto') : t('flashManual'));
 });
 
-function flashReshuffle(auto) {
+function flashMsg(text) {
   const content = document.getElementById('content');
   if (!content) return;
   const el = document.createElement('div');
   el.className = 'reshuffle-flash';
-  el.textContent = auto ? t('flashAuto') : t('flashManual');
+  el.textContent = text;
   content.insertBefore(el, content.firstChild);
   setTimeout(() => { el.classList.add('fade'); }, 1600);
   setTimeout(() => { if (el.parentNode) el.remove(); }, 2200);

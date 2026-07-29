@@ -305,20 +305,8 @@
     </div>
   </div>
 
-  <!-- 등록 단계 -->
-  <div class="panel" id="regPanel">
-    <h2 data-i18n="regTitle">1단계 · 사용자 등록 및 인증</h2>
-    <div class="reg-area">
-      <label data-i18n="labelUserId">사용자 ID</label>
-      <input type="text" id="userIdInput" value="demo-user" autocomplete="off">
-      <label style="margin-top:12px" data-i18n="labelPassword">시연용 4자리 비밀번호 (예: 7259)</label>
-      <input type="text" id="passwordInput" maxlength="4" pattern="[0-9]{4}" placeholder="0000" autocomplete="off">
-    </div>
-    <button class="btn btn-primary" onclick="registerUser()" data-i18n="btnRegister">등록 완료 → 인증 시작</button>
-  </div>
-
-  <!-- 인증 단계 -->
-  <div id="authPanel" style="display:none;">
+  <!-- 데모1 4단계: 등록을 휴대폰으로 이전 — PC엔 등록 패널 없음, 로드 시 세션·QR 자동 생성 -->
+  <div id="authPanel">
 
     <div class="session-info">
       <span class="label" data-i18n="sessionLabel">SESSION:</span><span id="sessionId">-</span>
@@ -389,10 +377,13 @@
 <script>
 const socket = io();
 
-let currentUser = null;
+let currentUser = 'demo-user';    // 데모1 4단계: 사용자 ID 고정 (등록·비밀번호는 휴대폰에서)
 let currentSid = null;
 let userInput = [];
 let mobilePaired = false;
+let userRegistered = false;        // 휴대폰 등록 완료 여부 (키패드 활성화 조건)
+let pairingStatusKey = 'pairingWait';
+let pairingConnectedFlag = false;
 const passwordLength = 4;
 
 // ─────────── 다국어 사전 ───────────
@@ -413,7 +404,9 @@ const I18N = {
     logTitle: '┃ MESSAGE FLOW LOG (실시간 서버 통신) ┃',
     footer1: 'VTK Multi-Device Demo · Live Server with Socket.IO',
     footer2: '옵틱라이트 주식회사 · PG502 검토용 시연 · 2026',
-    pairingWait: '🔄 휴대폰 페어링 대기 중… QR 코드를 휴대폰으로 스캔하세요',
+    pairingWait: '🔄 휴대폰 대기 중… QR을 스캔하면 휴대폰에서 비밀번호가 등록됩니다',
+    pairingConnected: '📱 휴대폰 연결됨 · 비밀번호 등록 대기 중…',
+    pairingRegistered: '✓ 등록 완료 (비밀번호는 휴대폰에서 관리) · π는 휴대폰에만 전송 (PC는 π 모름)',
     pairingDone: '✓ 휴대폰 페어링 완료 · π는 휴대폰(VNK)에만 전송됨 (PC는 π를 알지 못함)',
     seqWaitPair: '좌표 시퀀스 C: (휴대폰 페어링 대기 중)',
     seqWaitInput: '좌표 시퀀스 C: (대기 중…)',
@@ -424,7 +417,7 @@ const I18N = {
     resultFailure: '✗ 인증 실패 — 좌표를 다시 확인하세요',
     alertRegInput: '사용자 ID와 4자리 숫자 비밀번호를 입력하세요',
     alertRegFail: '등록 실패: ', alertStartFail: '인증 시작 실패: ', alertConnFail: '서버 연결 실패: ',
-    logRegistered: '등록 완료 — 서버에 커밋먼트만 저장 (평문 D 폐기)',
+    logRegistered: '휴대폰에서 비밀번호 등록 완료 — 서버에 커밋먼트만 저장 (평문 D 폐기)',
     logSessionHead: '━━━ 새 인증 세션 시작 ━━━',
     logSessionId: '세션 ID: {v}',
     logNewPi: 'Server: 새 π 생성 (Channel ①로 휴대폰에만 전달 예정)',
@@ -462,7 +455,9 @@ const I18N = {
     logTitle: '┃ MESSAGE FLOW LOG (live server communication) ┃',
     footer1: 'VTK Multi-Device Demo · Live Server with Socket.IO',
     footer2: 'Optic Light Co., Ltd. · PG502 review demonstration · 2026',
-    pairingWait: '🔄 Waiting for phone pairing… scan the QR code with your phone',
+    pairingWait: '🔄 Waiting for phone… scan the QR to register your password on the phone',
+    pairingConnected: '📱 Phone connected · waiting for password registration…',
+    pairingRegistered: '✓ Registered (password managed on the phone) · π is sent only to the phone (PC never sees π)',
     pairingDone: '✓ Phone paired · π is sent only to the phone (VNK); the PC never sees π',
     seqWaitPair: 'Coordinate sequence C: (waiting for phone pairing)',
     seqWaitInput: 'Coordinate sequence C: (waiting…)',
@@ -473,7 +468,7 @@ const I18N = {
     resultFailure: '✗ Authentication failed — please check the positions again',
     alertRegInput: 'Enter a user ID and a 4-digit numeric password',
     alertRegFail: 'Registration failed: ', alertStartFail: 'Failed to start authentication: ', alertConnFail: 'Server connection failed: ',
-    logRegistered: 'Registration complete — only the commitment is stored (plaintext D discarded)',
+    logRegistered: 'Password registered from the phone — only the commitment is stored (plaintext D discarded)',
     logSessionHead: '━━━ New authentication session started ━━━',
     logSessionId: 'Session ID: {v}',
     logNewPi: 'Server: new π generated (to be sent only to the phone via Channel ①)',
@@ -543,7 +538,7 @@ function applyLanguage() {
   document.getElementById('langEn').classList.toggle('on', LANG === 'en');
   // 동적 요소
   const ps = document.getElementById('pairingStatus');
-  if (ps) ps.textContent = mobilePaired ? t('pairingDone') : t('pairingWait');
+  if (ps) { ps.className = 'pairing-status' + (pairingConnectedFlag ? ' connected' : ''); ps.textContent = t(pairingStatusKey); }
   updateInputDisplay();
   renderLog();
   renderResult();
@@ -562,33 +557,12 @@ function setLanguage(lang) {
   applyLanguage();
 }
 
-async function registerUser() {
-  const userId = document.getElementById('userIdInput').value.trim();
-  const password = document.getElementById('passwordInput').value.trim();
-  if (!userId || !/^\d{4}$/.test(password)) {
-    alert(t('alertRegInput'));
-    return;
-  }
-  try {
-    const res = await fetch('/register', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ userId, password })
-    });
-    const data = await res.json();
-    if (!data.ok) {
-      alert(t('alertRegFail') + (data.error || 'unknown'));
-      return;
-    }
-    currentUser = userId;
-    document.getElementById('currentUser').textContent = userId;
-    document.getElementById('regPanel').style.display = 'none';
-    document.getElementById('authPanel').style.display = 'block';
-    log('logRegistered', 'success');
-    startAuth();
-  } catch (err) {
-    alert(t('alertConnFail') + err.message);
-  }
+// 페어링/등록 상태 배너 갱신 (언어 전환 시 재적용 위해 키·연결상태 보관)
+function setPairingStatus(key, connected) {
+  pairingStatusKey = key;
+  pairingConnectedFlag = !!connected;
+  const ps = document.getElementById('pairingStatus');
+  if (ps) { ps.className = 'pairing-status' + (connected ? ' connected' : ''); ps.textContent = t(key); }
 }
 
 async function startAuth() {
@@ -606,9 +580,10 @@ async function startAuth() {
     currentSid = data.sid;
     userInput = [];
     mobilePaired = false;
+    userRegistered = false;
     document.getElementById('sessionId').textContent = currentSid;
-    document.getElementById('pairingStatus').className = 'pairing-status';
-    document.getElementById('pairingStatus').textContent = t('pairingWait');
+    document.getElementById('currentUser').textContent = currentUser;
+    setPairingStatus('pairingWait', false);
     document.getElementById('padB').classList.add('disabled');
     document.getElementById('resultArea').innerHTML = '';
     document.getElementById('submitBtn').disabled = true;
@@ -643,11 +618,18 @@ async function startAuth() {
 
 socket.on('mobile-paired', () => {
   mobilePaired = true;
-  document.getElementById('pairingStatus').className = 'pairing-status connected';
-  document.getElementById('pairingStatus').textContent = t('pairingDone');
+  setPairingStatus('pairingConnected', false);   // 연결됨 · 등록 대기 (키패드는 아직 비활성)
+  log('logPaired', 'success');
+});
+
+// 휴대폰에서 비밀번호 등록 완료 → PC 키패드 활성화 (데모1 4단계)
+socket.on('user-registered', ({ userId }) => {
+  userRegistered = true;
+  if (userId) { currentUser = userId; document.getElementById('currentUser').textContent = userId; }
+  setPairingStatus('pairingRegistered', true);
   document.getElementById('padB').classList.remove('disabled');
   document.getElementById('inputDisplay').textContent = t('seqWaitInput');
-  log('logPaired', 'success');
+  log('logRegistered', 'success');
   log('logChan1', 'info');
   log('logChan2', 'info');
 });
@@ -670,7 +652,7 @@ function renderPadB() {
 }
 
 function handleCellClick(idx, cellElem) {
-  if (!mobilePaired || userInput.length >= passwordLength) return;
+  if (!userRegistered || userInput.length >= passwordLength) return;
   cellElem.classList.add('clicked');
   setTimeout(() => cellElem.classList.remove('clicked'), 300);
   userInput.push(idx);
@@ -686,7 +668,7 @@ function handleCellClick(idx, cellElem) {
 function updateInputDisplay() {
   const display = document.getElementById('inputDisplay');
   if (userInput.length === 0) {
-    display.textContent = mobilePaired ? t('seqWaitInput') : t('seqWaitPair');
+    display.textContent = userRegistered ? t('seqWaitInput') : t('seqWaitPair');
   } else {
     display.textContent = t('seqPrefix') + '(' + userInput.join(', ') + ')';
   }
@@ -770,7 +752,9 @@ async function submitAuth() {
 
 document.getElementById('langKo').onclick = () => setLanguage('ko');
 document.getElementById('langEn').onclick = () => setLanguage('en');
+document.getElementById('currentUser').textContent = currentUser;
 applyLanguage();
+startAuth();   // 데모1 4단계: 로드 시 세션·QR 자동 생성 (등록은 휴대폰에서)
 </script>
 </body>
 </html>

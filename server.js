@@ -126,6 +126,11 @@ app.post('/auth/submit', (req, res) => {
 
   console.log(`[Submit] session=${sid} C=[${cSequence.join(',')}]`);
 
+  // 이미 폐기된 VNK(π 없음)로 들어온 제출 방어 — [VNK 재배치]로 새 π 요청 유도
+  if (!session.pi) {
+    return res.json({ ok: false, reason: '이전 인증이 끝난 VNK입니다 — [VNK 재배치]를 눌러 새 배치를 받으세요' });
+  }
+
   // 키패드 layout: [1,2,3,4,5,6,7,8,9,_,0,_]
   const numericIndices = [0, 1, 2, 3, 4, 5, 6, 7, 8, 10];
 
@@ -153,8 +158,14 @@ app.post('/auth/submit', (req, res) => {
   // 모바일에 결과 통보
   io.to(`mobile-${sid}`).emit('auth-result', { success });
 
-  // π 즉시 폐기
-  session.pi = null;
+  if (success) {
+    // 인증 성공 → 사용한 π 폐기하고 즉시 새 π로 자동 재배치 (데모2 방식)
+    // π는 휴대폰(VNK)에만 실시간 전송, PC(VIK)에는 보내지 않음 → 데모1 원칙 유지
+    session.pi = generatePi();
+    console.log(`[Submit] 인증 성공 → 새 π 자동 재배치`);
+    io.to(`mobile-${sid}`).emit('pi-updated', { pi: session.pi, auto: true });
+  }
+  // 실패 시엔 π를 유지 → 같은 배치로 재시도 가능
   session.status = success ? 'success' : 'failure';
 
   res.json({
@@ -162,6 +173,25 @@ app.post('/auth/submit', (req, res) => {
     computedPassword: enteredPassword,
     message: success ? '인증 성공' : '인증 실패'
   });
+});
+
+// 수동 재배치 (VNK 재배치 버튼) — 같은 세션 유지, 새 π만 생성해 휴대폰에 전송
+app.post('/auth/reshuffle', (req, res) => {
+  const { sid } = req.body;
+  const session = sessions.get(sid);
+  if (!session) return res.status(404).json({ error: '세션 만료 또는 없음' });
+  const user = users.get(session.userId);
+  if (!user) return res.status(404).json({ error: '사용자 정보 없음' });
+
+  session.pi = generatePi();
+  session.status = 'waiting_for_pc_input';
+  console.log(`[Reshuffle] session=${sid} 수동 재배치 — 새 π 생성`);
+
+  // 새 π는 휴대폰(VNK)에만 전송 (auto 플래그 없음 → 수동 재배치 로그)
+  io.to(`mobile-${sid}`).emit('pi-updated', { pi: session.pi });
+
+  // PC에는 π를 보내지 않음 (재배치 성공 여부만 반환)
+  res.json({ ok: true });
 });
 
 // ===== Socket.IO 실시간 동기화 =====

@@ -367,7 +367,8 @@
     </div>
 
     <div class="controls" style="margin-bottom: 24px;">
-      <button class="btn btn-secondary" onclick="startAuth()" data-i18n="btnNewChallenge">🎲 새 챌린지 (새 π 생성)</button>
+      <button class="btn btn-secondary" onclick="manualReshuffle()" data-i18n="btnReshuffle">🎲 VNK 재배치 (새 π)</button>
+      <button class="btn btn-secondary" onclick="startAuth()" data-i18n="btnNewChallenge">🔄 새 세션 (QR 재발급)</button>
     </div>
 
     <div class="log-panel">
@@ -408,7 +409,7 @@ const I18N = {
     altUrlLabel: '대체 URL (QR 스캔 안 될 경우):',
     padHeading: '② VIK · 무표시 (PC)',
     padNote: '휴대폰의 VNK(숫자표시)에서 비밀번호 4자리의 <b>위치</b>를 확인한 뒤, 아래 VIK에서 같은 위치를 클릭하세요.',
-    btnReset: '↺ 다시 입력', btnSubmit: '인증 제출', btnNewChallenge: '🎲 새 챌린지 (새 π 생성)',
+    btnReset: '↺ 다시 입력', btnSubmit: '인증 제출', btnNewChallenge: '🔄 새 세션 (QR 재발급)', btnReshuffle: '🎲 VNK 재배치 (새 π)',
     logTitle: '┃ MESSAGE FLOW LOG (실시간 서버 통신) ┃',
     footer1: 'VTK Multi-Device Demo · Live Server with Socket.IO',
     footer2: '옵틱라이트 주식회사 · PG502 검토용 시연 · 2026',
@@ -417,6 +418,7 @@ const I18N = {
     seqWaitPair: '좌표 시퀀스 C: (휴대폰 페어링 대기 중)',
     seqWaitInput: '좌표 시퀀스 C: (대기 중…)',
     seqPrefix: '좌표 시퀀스 C: ',
+    seqReshuffled: '좌표 시퀀스 C: 새 배치로 재배치됨 — 휴대폰(VNK)에서 새 위치 확인 후 클릭',
     qrFailed: 'QR 생성 실패',
     resultSuccess: '✓ 인증 성공 — 비밀번호 평문이 어디에도 흐르지 않음',
     resultFailure: '✗ 인증 실패 — 좌표를 다시 확인하세요',
@@ -438,6 +440,8 @@ const I18N = {
     logCompare: 'Server: H(D\u2032 \u2225 salt) 비교',
     logMatch: '✓ 커밋먼트 일치 → 인증 성공',
     logDiscard: 'Server: \u03c0, D\u2032 메모리에서 즉시 폐기',
+    logAutoReshuffle: 'Server: 인증 성공 → 사용한 π 폐기, 새 π로 자동 재배치 (휴대폰 VNK에만 전송 · PC는 π 모름)',
+    logManualReshuffle: 'Server: 수동 재배치 → 새 π 생성 후 휴대폰(VNK)만 갱신',
     logFail: '✗ 인증 실패',
     logError: '오류: {v}',
     locale: 'ko-KR'
@@ -454,7 +458,7 @@ const I18N = {
     altUrlLabel: 'Alternate URL (if the QR code cannot be scanned):',
     padHeading: '② VIK · Blank (PC)',
     padNote: 'Find the <b>positions</b> of your 4-digit password on the VNK (numbered) on your phone, then click the same positions on the VIK below.',
-    btnReset: '↺ Clear', btnSubmit: 'Submit', btnNewChallenge: '🎲 New challenge (new π)',
+    btnReset: '↺ Clear', btnSubmit: 'Submit', btnNewChallenge: '🔄 New session (reissue QR)', btnReshuffle: '🎲 Reshuffle VNK (new π)',
     logTitle: '┃ MESSAGE FLOW LOG (live server communication) ┃',
     footer1: 'VTK Multi-Device Demo · Live Server with Socket.IO',
     footer2: 'Optic Light Co., Ltd. · PG502 review demonstration · 2026',
@@ -463,6 +467,7 @@ const I18N = {
     seqWaitPair: 'Coordinate sequence C: (waiting for phone pairing)',
     seqWaitInput: 'Coordinate sequence C: (waiting…)',
     seqPrefix: 'Coordinate sequence C: ',
+    seqReshuffled: 'Coordinate sequence C: reshuffled to a new layout — check the new positions on the phone (VNK), then click',
     qrFailed: 'QR generation failed',
     resultSuccess: '✓ Authentication successful — the plaintext password never flows anywhere',
     resultFailure: '✗ Authentication failed — please check the positions again',
@@ -484,6 +489,8 @@ const I18N = {
     logCompare: 'Server: comparing H(D\u2032 \u2225 salt)',
     logMatch: '✓ Commitment matched → authentication successful',
     logDiscard: 'Server: π and D\u2032 immediately discarded from memory',
+    logAutoReshuffle: 'Server: authentication successful → used π discarded, auto-reshuffled with a new π (sent only to the phone VNK; the PC never sees π)',
+    logManualReshuffle: 'Server: manual reshuffle → new π generated, only the phone (VNK) updated',
     logFail: '✗ Authentication failed',
     logError: 'Error: {v}',
     locale: 'en-US'
@@ -701,6 +708,40 @@ function resetInput() {
   log('logReset', 'system');
 }
 
+// 인증 성공 후: 서버가 휴대폰(VNK)을 새 π로 자동 재배치함 → PC는 입력만 비워 다음 라운드 준비
+// (결과 배너는 그대로 두어 성공을 잠시 보여줌)
+function prepareNextRound() {
+  userInput = [];
+  updateProgressDots();
+  document.getElementById('submitBtn').disabled = true;
+  const display = document.getElementById('inputDisplay');
+  if (display) display.textContent = t('seqReshuffled');
+}
+
+// 수동 재배치: 같은 세션 유지, 서버가 새 π 생성 후 휴대폰(VNK)만 갱신 (QR 재스캔 불필요)
+async function manualReshuffle() {
+  if (!currentSid) return;
+  try {
+    const res = await fetch('/auth/reshuffle', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ sid: currentSid })
+    });
+    const data = await res.json();
+    if (data.error) { log('logError', 'warning', { v: data.error }); return; }
+    userInput = [];
+    lastAuthSuccess = null;
+    document.getElementById('resultArea').innerHTML = '';
+    document.getElementById('submitBtn').disabled = true;
+    updateProgressDots();
+    const display = document.getElementById('inputDisplay');
+    if (display) display.textContent = t('seqReshuffled');
+    log('logManualReshuffle', 'info');
+  } catch (err) {
+    log('logError', 'warning', { v: err.message });
+  }
+}
+
 async function submitAuth() {
   log('logSend', 'info', { c: userInput.join(',') });
   try {
@@ -715,8 +756,9 @@ async function submitAuth() {
     const resultArea = document.getElementById('resultArea');
     if (data.ok) {
       log('logMatch', 'success');
-      log('logDiscard', 'system');
+      log('logAutoReshuffle', 'success');
       lastAuthSuccess = true; renderResult();
+      prepareNextRound();          // 서버가 새 π를 휴대폰(VNK)에 밀어줌 → PC 입력만 초기화
     } else {
       log('logFail', 'warning');
       lastAuthSuccess = false; renderResult();

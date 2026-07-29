@@ -204,6 +204,20 @@
   }
   .result-banner.success { background: var(--green-bg); color: var(--green); }
   .result-banner.failure { background: var(--red-bg); color: var(--red); }
+  .reshuffle-flash {
+    margin-bottom: 14px;
+    padding: 12px 16px;
+    border-radius: 8px;
+    background: rgba(212, 165, 116, 0.18);
+    border: 1px solid var(--amber);
+    color: var(--amber-bright);
+    font-size: 13px;
+    font-weight: bold;
+    text-align: center;
+    line-height: 1.5;
+    transition: opacity 0.5s ease;
+  }
+  .reshuffle-flash.fade { opacity: 0; }
   .error-screen {
     text-align: center;
     padding: 40px 20px;
@@ -257,7 +271,9 @@ const I18N = {
     errPairMsg: '세션이 만료되었거나 존재하지 않습니다.',
     errConn: '연결 오류',
     pos: ['좌상단','상단','우상단','좌측','중앙','우측','좌하단','하단','우하단','','하단중앙',''],
-    cellPrefix: '셀 '
+    cellPrefix: '셀 ',
+    flashAuto: '🔄 인증 완료 · 새 배치로 자동 재배치됨 — 새 위치를 확인하세요',
+    flashManual: '🔄 새 배치로 재배치됨 — 새 위치를 확인하세요'
   },
   en: {
     headerSub: 'Channel ① · Mobile · VNK (numbered)',
@@ -276,7 +292,9 @@ const I18N = {
     errPairMsg: 'The session has expired or does not exist.',
     errConn: 'Connection error',
     pos: ['top-left','top','top-right','left','center','right','bottom-left','bottom','bottom-right','','bottom-center',''],
-    cellPrefix: 'cell '
+    cellPrefix: 'cell ',
+    flashAuto: '🔄 Authentication complete · auto-reshuffled to a new layout — check the new positions',
+    flashManual: '🔄 Reshuffled to a new layout — check the new positions'
   }
 };
 let LANG = (function () {
@@ -404,6 +422,25 @@ socket.on('auth-result', ({ success }) => {
     ? '<div class="result-banner success">' + t('resultSuccess') + '</div>'
     : '<div class="result-banner failure">' + t('resultFailure') + '</div>';
 });
+
+// 서버가 새 π를 밀어주면(인증 성공 시 자동 재배치 / 수동 재배치) VNK를 새 위치로 다시 그림
+socket.on('pi-updated', ({ pi: newPi, auto }) => {
+  if (!newPi || !padData) return;
+  padData = Object.assign({}, padData, { pi: newPi });
+  renderPadA(padData);              // 저장된 비밀번호로 새 위치 재계산·재렌더
+  flashReshuffle(auto);
+});
+
+function flashReshuffle(auto) {
+  const content = document.getElementById('content');
+  if (!content) return;
+  const el = document.createElement('div');
+  el.className = 'reshuffle-flash';
+  el.textContent = auto ? t('flashAuto') : t('flashManual');
+  content.insertBefore(el, content.firstChild);
+  setTimeout(() => { el.classList.add('fade'); }, 1600);
+  setTimeout(() => { if (el.parentNode) el.remove(); }, 2200);
+}
 
 document.getElementById('langKo').onclick = () => setLanguage('ko');
 document.getElementById('langEn').onclick = () => setLanguage('en');

@@ -62,6 +62,9 @@
     letter-spacing: 1px;
   }
   .header p { font-size: 12px; color: var(--text-muted); }
+  .lang-switch { display: flex; gap: 5px; justify-content: center; margin-top: 8px; }
+  .lang-switch button { padding: 3px 10px; border: 1px solid rgba(255,255,255,0.3); background: transparent; color: rgba(255,255,255,0.75); border-radius: 6px; font-size: 11px; font-weight: bold; cursor: pointer; font-family: inherit; letter-spacing: 1px; }
+  .lang-switch button.on { background: var(--amber, #D4A574); border-color: var(--amber, #D4A574); color: #0F1838; }
   .badge {
     display: inline-block;
     margin-top: 8px;
@@ -214,13 +217,14 @@
 <div class="phone-frame">
   <div class="header">
     <h1>📱 VTK Authenticator</h1>
-    <p>Channel ① · Mobile · VNK (숫자표시)</p>
+    <p id="headerSub">Channel ① · Mobile · VNK (숫자표시)</p>
+    <div class="lang-switch"><button id="langKo" class="on">KO</button><button id="langEn">EN</button></div>
     <div class="badge" id="statusBadge">CONNECTING...</div>
   </div>
   <div id="content">
     <div class="loading">
       <div class="spinner"></div>
-      <p>서버에 연결 중...</p>
+      <p id="connMsg">서버에 연결 중...</p>
     </div>
   </div>
 </div>
@@ -231,29 +235,96 @@ function getSid() {
   const params = new URLSearchParams(window.location.search);
   return params.get('s') || params.get('sid');
 }
-
 const sid = getSid();
 const socket = io();
 
+// ─────────── 다국어 사전 ───────────
+const I18N = {
+  ko: {
+    headerSub: 'Channel ① · Mobile · VNK (숫자표시)',
+    connecting: '서버에 연결 중...',
+    statusLive: '● LIVE · PC와 동기화됨',
+    statusConnecting: 'CONNECTING...',
+    instruction: '<strong>안내</strong><br>비밀번호 각 자릿수가 강조된 위치를<br>순서대로 기억하신 후, PC의 VIK(무표시)에서<br>같은 위치를 클릭하세요.',
+    pwLabel: 'YOUR PASSWORD',
+    posGuide: '비밀번호 위치 (순서대로):',
+    noteChannel: '이 π는 PC로 전송되지 않음',
+    resultSuccess: '✓ PC에서 인증 성공!',
+    resultFailure: '✗ PC에서 인증 실패',
+    errNoSid: '세션 ID 없음',
+    errNoSidMsg: 'PC 화면의 QR 코드를 다시 스캔하거나, URL에 ?s=세션ID 파라미터가 포함되어 있는지 확인하세요.',
+    errPair: '페어링 실패',
+    errPairMsg: '세션이 만료되었거나 존재하지 않습니다.',
+    errConn: '연결 오류',
+    pos: ['좌상단','상단','우상단','좌측','중앙','우측','좌하단','하단','우하단','','하단중앙',''],
+    cellPrefix: '셀 '
+  },
+  en: {
+    headerSub: 'Channel ① · Mobile · VNK (numbered)',
+    connecting: 'Connecting to the server...',
+    statusLive: '● LIVE · synced with PC',
+    statusConnecting: 'CONNECTING...',
+    instruction: '<strong>Guide</strong><br>Memorize the highlighted positions of each<br>password digit in order, then click the same<br>positions on the VIK (blank) on the PC.',
+    pwLabel: 'YOUR PASSWORD',
+    posGuide: 'Password positions (in order):',
+    noteChannel: 'This π is never sent to the PC',
+    resultSuccess: '✓ Authentication successful on the PC!',
+    resultFailure: '✗ Authentication failed on the PC',
+    errNoSid: 'No session ID',
+    errNoSidMsg: 'Please scan the QR code on the PC screen again, or check that the URL contains the ?s=SESSION_ID parameter.',
+    errPair: 'Pairing failed',
+    errPairMsg: 'The session has expired or does not exist.',
+    errConn: 'Connection error',
+    pos: ['top-left','top','top-right','left','center','right','bottom-left','bottom','bottom-right','','bottom-center',''],
+    cellPrefix: 'cell '
+  }
+};
+let LANG = (function () {
+  const q = new URLSearchParams(location.search).get('lang');
+  if (q === 'ko' || q === 'en') return q;
+  return (navigator.language || '').toLowerCase().startsWith('ko') ? 'ko' : 'en';
+})();
+function t(key) { return (I18N[LANG] && I18N[LANG][key] !== undefined) ? I18N[LANG][key] : I18N.ko[key]; }
+
+let padData = null;         // renderPadA에 넘어온 data 보관(언어 전환 시 재렌더)
+let lastResult = null;      // 인증 결과 배너 상태
+function applyLanguage() {
+  document.documentElement.lang = LANG;
+  const ko = document.getElementById('langKo'), en = document.getElementById('langEn');
+  if (ko && en) { ko.classList.toggle('on', LANG === 'ko'); en.classList.toggle('on', LANG === 'en'); }
+  const sub = document.getElementById('headerSub'); if (sub) sub.textContent = t('headerSub');
+  const badge = document.getElementById('statusBadge');
+  if (badge && badge.classList.contains('live')) badge.textContent = t('statusLive');
+  if (padData) renderPadA(padData);   // 안내·라벨·위치를 현재 언어로 다시 그림
+}
+function setLanguage(lang) {
+  if (lang === LANG) return;
+  LANG = lang;
+  const url = new URL(location.href);
+  url.searchParams.set('lang', lang);
+  history.replaceState(null, '', url);
+  applyLanguage();
+}
+
 async function init() {
   if (!sid) {
-    showError('세션 ID 없음', 'PC 화면의 QR 코드를 다시 스캔하거나, URL에 ?s=세션ID 파라미터가 포함되어 있는지 확인하세요.');
+    showError(t('errNoSid'), t('errNoSidMsg'));
     return;
   }
   try {
     const res = await fetch('/api/pair/' + sid);
     if (!res.ok) {
       const err = await res.json();
-      showError('페어링 실패', err.error || '세션이 만료되었거나 존재하지 않습니다.');
+      showError(t('errPair'), t('errPairMsg'));
       return;
     }
     const data = await res.json();
     socket.emit('join-mobile', { sid });
     document.getElementById('statusBadge').className = 'badge live';
-    document.getElementById('statusBadge').textContent = '● LIVE · PC와 동기화됨';
+    document.getElementById('statusBadge').textContent = t('statusLive');
     renderPadA(data);
   } catch (err) {
-    showError('연결 오류', err.message);
+    showError(t('errConn'), err.message);
   }
 }
 
@@ -267,6 +338,7 @@ function showError(title, msg) {
 }
 
 function renderPadA(data) {
+  padData = data;
   const { pi, password } = data;
   const numericIndices = [0, 1, 2, 3, 4, 5, 6, 7, 8, 10];
   const cellLayout = new Array(12).fill(null);
@@ -281,22 +353,12 @@ function renderPadA(data) {
     highlighted.push(cellLayout.indexOf(digit));
   }
 
-  const positionLabels = [
-    '좌상단', '상단', '우상단',
-    '좌측', '중앙', '우측',
-    '좌하단', '하단', '우하단',
-    '', '하단중앙', ''
-  ];
+  const positionLabels = t('pos');
 
   let html = `
-    <div class="instruction">
-      <strong>위원님께 안내</strong><br>
-      비밀번호 각 자릿수가 강조된 위치를<br>
-      순서대로 기억하신 후, PC의 VIK(무표시)에서<br>
-      같은 위치를 클릭하세요.
-    </div>
+    <div class="instruction">${t('instruction')}</div>
     <div class="password-display">
-      <div class="label">YOUR PASSWORD</div>
+      <div class="label">${t('pwLabel')}</div>
       <div class="value">${password}</div>
     </div>
     <div class="pad-a">
@@ -315,9 +377,9 @@ function renderPadA(data) {
   }
   html += `</div>`;
 
-  html += `<div class="position-guide"><strong>비밀번호 위치 (순서대로):</strong><br>`;
+  html += `<div class="position-guide"><strong>${t('posGuide')}</strong><br>`;
   for (let i = 0; i < password.length; i++) {
-    html += `${i + 1}. <strong>${password[i]}</strong> → ${positionLabels[highlighted[i]] || '셀 ' + highlighted[i]}<br>`;
+    html += `${i + 1}. <strong>${password[i]}</strong> → ${positionLabels[highlighted[i]] || (t('cellPrefix') + highlighted[i])}<br>`;
   }
   html += `</div>`;
 
@@ -327,7 +389,7 @@ function renderPadA(data) {
       <span class="label">SESSION:</span> ${sid.substring(0, 16)}<br>
       <span class="label">π:</span> [${pi.join(',')}]<br>
       <span class="label">CHANNEL:</span> ① Mobile (서버 → 모바일)<br>
-      <span class="label">NOTE:</span> 이 π는 PC로 전송되지 않음
+      <span class="label">NOTE:</span> ${t('noteChannel')}
     </div>
   `;
 
@@ -337,13 +399,15 @@ function renderPadA(data) {
 socket.on('auth-result', ({ success }) => {
   const banner = document.getElementById('resultBanner');
   if (!banner) return;
-  if (success) {
-    banner.innerHTML = '<div class="result-banner success">✓ PC에서 인증 성공!</div>';
-  } else {
-    banner.innerHTML = '<div class="result-banner failure">✗ PC에서 인증 실패</div>';
-  }
+  lastResult = success;
+  banner.innerHTML = success
+    ? '<div class="result-banner success">' + t('resultSuccess') + '</div>'
+    : '<div class="result-banner failure">' + t('resultFailure') + '</div>';
 });
 
+document.getElementById('langKo').onclick = () => setLanguage('ko');
+document.getElementById('langEn').onclick = () => setLanguage('en');
+applyLanguage();
 init();
 </script>
 </body>

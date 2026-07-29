@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>VTK Mobile · 키패드 B (숫자표시)</title>
+<title>VTK Mobile · VNK</title>
 <style>
   :root {
     --navy: #1E2761;
@@ -98,13 +98,13 @@
     margin: 0 auto 16px;
   }
   @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-  .pad-b {
+  .pad-a {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
     gap: 8px;
     margin: 18px 0;
   }
-  .b-cell {
+  .a-cell {
     aspect-ratio: 1;
     background: rgba(255,255,255,0.06);
     border: 2px solid rgba(255,255,255,0.12);
@@ -118,7 +118,7 @@
     transition: all 0.2s;
     user-select: none;
   }
-  .b-cell.highlighted {
+  .a-cell.highlighted {
     background: var(--amber);
     color: var(--navy-dark);
     border-color: var(--amber-bright);
@@ -126,7 +126,7 @@
     transform: scale(1.05);
     position: relative;
   }
-  .b-cell.highlighted::after {
+  .a-cell.highlighted::after {
     content: attr(data-order);
     position: absolute;
     top: -8px;
@@ -142,7 +142,7 @@
     justify-content: center;
     border: 2px solid var(--amber);
   }
-  .b-cell.empty {
+  .a-cell.empty {
     background: rgba(255,255,255,0.02);
     border: 2px dashed rgba(255,255,255,0.08);
   }
@@ -176,26 +176,6 @@
     line-height: 1.7;
   }
   .position-guide strong { color: var(--amber); }
-  .toggle-row {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 10px;
-    background: rgba(255,255,255,0.05);
-    border: 1px solid rgba(255,255,255,0.12);
-    border-radius: 10px;
-    padding: 10px 12px;
-    margin-bottom: 16px;
-  }
-  .toggle-label { font-size: 12.5px; color: var(--amber-bright); font-weight: bold; }
-  .seg { display: flex; background: rgba(0,0,0,0.3); border-radius: 8px; padding: 3px; }
-  .seg-btn {
-    border: none; background: transparent; color: var(--text-muted);
-    font-size: 13px; font-weight: bold; padding: 6px 14px; border-radius: 6px;
-    cursor: pointer; font-family: inherit; transition: all 0.15s;
-  }
-  .seg-btn.active { background: var(--amber); color: var(--navy-dark); }
-  .mode-note { font-size: 11px; color: var(--text-muted); margin: -8px 0 16px; text-align: center; line-height: 1.5; }
   .channel-info {
     background: rgba(0,0,0,0.2);
     padding: 12px 16px;
@@ -234,7 +214,7 @@
 <div class="phone-frame">
   <div class="header">
     <h1>📱 VTK Authenticator</h1>
-    <p>Channel ① · Mobile · 키패드 B (숫자표시)</p>
+    <p>Channel ① · Mobile · VNK (숫자표시)</p>
     <div class="badge" id="statusBadge">CONNECTING...</div>
   </div>
   <div id="content">
@@ -254,8 +234,6 @@ function getSid() {
 
 const sid = getSid();
 const socket = io();
-let padData = null;       // 서버에서 받은 { pi, password, n }
-let showHints = true;     // 강조 표시(시연 보조). 기본 켜짐, 사용자가 토글
 
 async function init() {
   if (!sid) {
@@ -273,8 +251,7 @@ async function init() {
     socket.emit('join-mobile', { sid });
     document.getElementById('statusBadge').className = 'badge live';
     document.getElementById('statusBadge').textContent = '● LIVE · PC와 동기화됨';
-    padData = data;
-    renderPadB();
+    renderPadA(data);
   } catch (err) {
     showError('연결 오류', err.message);
   }
@@ -289,18 +266,8 @@ function showError(title, msg) {
   `;
 }
 
-function setHints(v) {
-  if (showHints === v) return;
-  showHints = v;
-  const prev = document.getElementById('resultBanner');
-  const keep = prev ? prev.innerHTML : '';
-  renderPadB();
-  const now = document.getElementById('resultBanner');
-  if (now && keep) now.innerHTML = keep;
-}
-
-function renderPadB() {
-  const { pi, password } = padData;
+function renderPadA(data) {
+  const { pi, password } = data;
   const numericIndices = [0, 1, 2, 3, 4, 5, 6, 7, 8, 10];
   const cellLayout = new Array(12).fill(null);
   for (let digit = 0; digit < 10; digit++) {
@@ -310,7 +277,8 @@ function renderPadB() {
 
   const highlighted = [];
   for (let i = 0; i < password.length; i++) {
-    highlighted.push(cellLayout.indexOf(parseInt(password[i])));
+    const digit = parseInt(password[i]);
+    highlighted.push(cellLayout.indexOf(digit));
   }
 
   const positionLabels = [
@@ -320,36 +288,26 @@ function renderPadB() {
     '', '하단중앙', ''
   ];
 
-  // 안내문 (모드별)
-  let html = showHints
-    ? `<div class="instruction"><strong>위원님께 안내 · 시연 보조 모드</strong><br>비밀번호 각 자릿수가 강조된 위치를 순서대로 기억하신 후, PC의 키패드 A(무표시)에서 같은 위치를 클릭하세요.</div>`
-    : `<div class="instruction"><strong>실전 모드</strong><br>아래 키패드 B에서 본인 비밀번호 숫자의 위치를 직접 찾은 뒤, PC의 키패드 A(무표시)에서 같은 위치를 순서대로 클릭하세요.</div>`;
-
-  // 토글 (강조 표시 켜짐/꺼짐)
-  html += `
-    <div class="toggle-row">
-      <span class="toggle-label">💡 비밀번호 위치 강조</span>
-      <div class="seg">
-        <button class="seg-btn ${showHints ? 'active' : ''}" onclick="setHints(true)">켜짐</button>
-        <button class="seg-btn ${!showHints ? 'active' : ''}" onclick="setHints(false)">꺼짐</button>
-      </div>
+  let html = `
+    <div class="instruction">
+      <strong>위원님께 안내</strong><br>
+      비밀번호 각 자릿수가 강조된 위치를<br>
+      순서대로 기억하신 후, PC의 VIK(무표시)에서<br>
+      같은 위치를 클릭하세요.
     </div>
-    <div class="mode-note">${showHints ? '시연 보조 — 비밀번호와 정답 위치를 표시합니다.' : '실전 — 숫자판만 보이며, 위치는 직접 찾습니다.'}</div>
+    <div class="password-display">
+      <div class="label">YOUR PASSWORD</div>
+      <div class="value">${password}</div>
+    </div>
+    <div class="pad-a">
   `;
 
-  // 비밀번호 표시 (강조 켜짐일 때만)
-  if (showHints) {
-    html += `<div class="password-display"><div class="label">YOUR PASSWORD</div><div class="value">${password}</div></div>`;
-  }
-
-  // 키패드 B (숫자표시) — 숫자는 항상 표시, 강조는 모드에 따라
-  html += `<div class="pad-b">`;
   for (let i = 0; i < 12; i++) {
     const digit = cellLayout[i];
     const isEmpty = digit === null;
     const order = highlighted.indexOf(i);
-    const isH = showHints && order !== -1;
-    let cls = 'b-cell';
+    const isH = order !== -1;
+    let cls = 'a-cell';
     if (isEmpty) cls += ' empty';
     if (isH) cls += ' highlighted';
     const attr = isH ? `data-order="${order + 1}"` : '';
@@ -357,25 +315,21 @@ function renderPadB() {
   }
   html += `</div>`;
 
-  // 위치 가이드 (강조 켜짐일 때만)
-  if (showHints) {
-    html += `<div class="position-guide"><strong>비밀번호 위치 (순서대로):</strong><br>`;
-    for (let i = 0; i < password.length; i++) {
-      html += `${i + 1}. <strong>${password[i]}</strong> → ${positionLabels[highlighted[i]] || '셀 ' + highlighted[i]}<br>`;
-    }
-    html += `</div>`;
+  html += `<div class="position-guide"><strong>비밀번호 위치 (순서대로):</strong><br>`;
+  for (let i = 0; i < password.length; i++) {
+    html += `${i + 1}. <strong>${password[i]}</strong> → ${positionLabels[highlighted[i]] || '셀 ' + highlighted[i]}<br>`;
   }
+  html += `</div>`;
 
-  // 결과 배너 + 기술 정보 (π는 실전 모드에서 숨김)
-  html += `<div id="resultBanner"></div>`;
-  html += `<div class="channel-info">
-      <span class="label">SESSION:</span> ${sid.substring(0, 16)}<br>`;
-  if (showHints) {
-    html += `<span class="label">π:</span> [${pi.join(',')}]<br>`;
-  }
-  html += `<span class="label">CHANNEL:</span> ① Mobile (서버 → 모바일)<br>
+  html += `
+    <div id="resultBanner"></div>
+    <div class="channel-info">
+      <span class="label">SESSION:</span> ${sid.substring(0, 16)}<br>
+      <span class="label">π:</span> [${pi.join(',')}]<br>
+      <span class="label">CHANNEL:</span> ① Mobile (서버 → 모바일)<br>
       <span class="label">NOTE:</span> 이 π는 PC로 전송되지 않음
-    </div>`;
+    </div>
+  `;
 
   document.getElementById('content').innerHTML = html;
 }

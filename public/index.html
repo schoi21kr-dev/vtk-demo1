@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>VTK Multi-Device Demo · PC</title>
+<title>VTK 멀티디바이스 시연 · PC · 데모 1</title>
 <style>
   :root {
     --navy: #1E2761;
@@ -69,6 +69,7 @@
     padding-bottom: 12px;
     border-bottom: 2px solid var(--ice);
   }
+  .pad-note { font-size: 13px; color: var(--text-mid); line-height: 1.6; margin-bottom: 14px; }
   .main-grid {
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -133,14 +134,14 @@
     word-break: break-all;
     text-align: left;
   }
-  .pad-a {
+  .pad-b {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
     gap: 8px;
     max-width: 360px;
     margin: 16px auto;
   }
-  .a-cell {
+  .b-cell {
     aspect-ratio: 1;
     background: var(--pc-cyan-light);
     border: 2px solid var(--pc-cyan);
@@ -155,27 +156,27 @@
     user-select: none;
     font-weight: bold;
   }
-  .a-cell:hover {
+  .b-cell:hover {
     background: var(--pc-cyan);
     color: white;
     transform: scale(1.03);
   }
-  .a-cell.clicked {
+  .b-cell.clicked {
     background: var(--navy);
     color: var(--amber-bright);
     border-color: var(--navy);
   }
-  .a-cell.empty {
+  .b-cell.empty {
     background: #f8f8f8;
     border: 2px dashed #d0d0d0;
     cursor: default;
   }
-  .a-cell.empty:hover {
+  .b-cell.empty:hover {
     background: #f8f8f8;
     color: transparent;
     transform: none;
   }
-  .pad-a.disabled .a-cell { pointer-events: none; opacity: 0.5; }
+  .pad-b.disabled .b-cell { pointer-events: none; opacity: 0.5; }
   .input-display {
     background: var(--ice);
     padding: 14px 18px;
@@ -293,13 +294,13 @@
 <div class="container">
 
   <div class="header">
-    <h1>VTK 멀티디바이스 시연 · PC (Live)</h1>
+    <h1>VTK 멀티디바이스 시연 · PC (Live) · 데모 1</h1>
     <span class="badge">LEVEL 3 · HIGH ASSURANCE</span>
   </div>
 
   <!-- 등록 단계 -->
   <div class="panel" id="regPanel">
-    <h2>1단계 · 사용자 등록 (시연 시작 전 1회)</h2>
+    <h2>1단계 · 사용자 등록 및 인증</h2>
     <div class="reg-area">
       <label>사용자 ID</label>
       <input type="text" id="userIdInput" value="demo-user" autocomplete="off">
@@ -318,7 +319,7 @@
     </div>
 
     <div class="pairing-status" id="pairingStatus">
-      🔄 모바일 페어링 대기 중... QR 코드를 휴대폰으로 스캔하세요
+      🔄 휴대폰 페어링 대기 중… QR 코드를 휴대폰으로 스캔하세요
     </div>
 
     <div class="main-grid">
@@ -333,7 +334,7 @@
           1. 휴대폰 카메라 앱을 여세요<br>
           2. 위 QR 코드를 비추세요<br>
           3. 표시되는 링크를 탭하세요<br>
-          4. 모바일에 숫자표시 키패드 B가 표시됩니다
+          4. 휴대폰에 VNK(숫자표시)가 나타납니다
         </div>
         <div class="mobile-url-display" id="mobileUrlDisplay" style="display:none;">
           <strong>대체 URL (QR 스캔 안 될 경우):</strong><br>
@@ -342,12 +343,13 @@
       </div>
 
       <div class="panel">
-        <h2>② 키패드 A (무표시) — 모바일과 같은 위치를 클릭하세요</h2>
+        <h2>② VIK · 무표시 (PC)</h2>
+        <div class="pad-note">휴대폰의 VNK(숫자표시)에서 비밀번호 4자리의 <b>위치</b>를 확인한 뒤, 아래 VIK에서 같은 위치를 클릭하세요.</div>
         <div class="progress" id="progressDots">
           <div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div>
         </div>
-        <div class="pad-a disabled" id="padA"></div>
-        <div class="input-display" id="inputDisplay">좌표 시퀀스 C: (모바일 페어링 대기 중)</div>
+        <div class="pad-b disabled" id="padB"></div>
+        <div class="input-display" id="inputDisplay">좌표 시퀀스 C: (휴대폰 페어링 대기 중)</div>
         <div class="controls">
           <button class="btn btn-secondary" onclick="resetInput()">↺ 다시 입력</button>
           <button class="btn btn-primary" id="submitBtn" onclick="submitAuth()" disabled>인증 제출</button>
@@ -442,8 +444,8 @@ async function startAuth() {
     mobilePaired = false;
     document.getElementById('sessionId').textContent = currentSid;
     document.getElementById('pairingStatus').className = 'pairing-status';
-    document.getElementById('pairingStatus').textContent = '🔄 모바일 페어링 대기 중... QR 코드를 휴대폰으로 스캔하세요';
-    document.getElementById('padA').classList.add('disabled');
+    document.getElementById('pairingStatus').textContent = '🔄 휴대폰 페어링 대기 중… QR 코드를 휴대폰으로 스캔하세요';
+    document.getElementById('padB').classList.add('disabled');
     document.getElementById('resultArea').innerHTML = '';
     document.getElementById('submitBtn').disabled = true;
 
@@ -466,7 +468,7 @@ async function startAuth() {
     document.getElementById('mobileUrlText').textContent = data.mobileUrl;
     document.getElementById('mobileUrlDisplay').style.display = 'block';
 
-    renderPadA();
+    renderPadB();
     updateInputDisplay();
     updateProgressDots();
   } catch (err) {
@@ -477,28 +479,28 @@ async function startAuth() {
 socket.on('mobile-paired', () => {
   mobilePaired = true;
   document.getElementById('pairingStatus').className = 'pairing-status connected';
-  document.getElementById('pairingStatus').innerHTML = '✓ 모바일 페어링 완료 · π는 모바일에만 전송됨 (PC는 π를 알지 못함)';
-  document.getElementById('padA').classList.remove('disabled');
+  document.getElementById('pairingStatus').innerHTML = '✓ 휴대폰 페어링 완료 · π는 휴대폰(VNK)에만 전송됨 (PC는 π를 알지 못함)';
+  document.getElementById('padB').classList.remove('disabled');
   document.getElementById('inputDisplay').textContent = '좌표 시퀀스 C: (대기 중...)';
-  log(`Socket.IO: 모바일 페어링 완료 신호 수신`, 'success');
+  log(`Socket.IO: 휴대폰 페어링 완료 신호 수신`, 'success');
   log(`Channel ①: Server → Mobile에 π 전송됨`, 'info');
-  log(`Channel ②: Server → PC에 빈 A 패드(무표시) (π는 PC로 전송 안 됨)`, 'info');
+  log(`Channel ②: Server → PC에 빈 VIK (π는 PC로 전송 안 됨)`, 'info');
 });
 
-function renderPadA() {
-  const padA = document.getElementById('padA');
-  padA.innerHTML = '';
+function renderPadB() {
+  const padB = document.getElementById('padB');
+  padB.innerHTML = '';
   for (let i = 0; i < 12; i++) {
     const cell = document.createElement('div');
     if (i === 9 || i === 11) {
-      cell.className = 'a-cell empty';
+      cell.className = 'b-cell empty';
     } else {
-      cell.className = 'a-cell';
+      cell.className = 'b-cell';
       cell.dataset.index = i;
       cell.textContent = '·';
       cell.onclick = () => handleCellClick(i, cell);
     }
-    padA.appendChild(cell);
+    padB.appendChild(cell);
   }
 }
 
@@ -507,7 +509,7 @@ function handleCellClick(idx, cellElem) {
   cellElem.classList.add('clicked');
   setTimeout(() => cellElem.classList.remove('clicked'), 300);
   userInput.push(idx);
-  log(`사용자: A 패드 좌표 [${idx}] 클릭`, 'info');
+  log(`사용자: VIK 좌표 [${idx}] 클릭`, 'info');
   updateInputDisplay();
   updateProgressDots();
   if (userInput.length === passwordLength) {
@@ -519,7 +521,7 @@ function handleCellClick(idx, cellElem) {
 function updateInputDisplay() {
   const display = document.getElementById('inputDisplay');
   if (userInput.length === 0) {
-    display.textContent = mobilePaired ? '좌표 시퀀스 C: (대기 중...)' : '좌표 시퀀스 C: (모바일 페어링 대기 중)';
+    display.textContent = mobilePaired ? '좌표 시퀀스 C: (대기 중...)' : '좌표 시퀀스 C: (휴대폰 페어링 대기 중)';
   } else {
     display.textContent = `좌표 시퀀스 C: (${userInput.join(', ')})`;
   }

@@ -313,15 +313,18 @@
       &nbsp;&nbsp;<span class="label" data-i18n="userLabel">USER:</span><span id="currentUser">-</span>
     </div>
 
-    <div class="main-grid">
-
+    <!-- 단계 1: QR 스캔 안내 (처음엔 이것만 표시) -->
+    <div id="stage1">
       <div class="panel qr-section">
         <h2 data-i18n="qrHeading">① 휴대폰으로 QR 코드 스캔</h2>
         <div class="qr-box" id="qrBox">
           <div style="padding:60px 0;color:var(--text-muted)">QR 코드 로딩 중...</div>
         </div>
       </div>
+    </div>
 
+    <!-- 단계 2: VIK 입력 (휴대폰이 QR을 스캔하면 표시) -->
+    <div id="stage2" style="display:none;">
       <div class="panel">
         <h2 data-i18n="padHeading">② VIK · 무표시 (PC)</h2>
         <div class="pad-note" data-i18n-html="padNote">휴대폰의 VNK(숫자표시)에서 비밀번호 4자리의 <b>위치</b>를 확인한 뒤, 아래 VIK에서 같은 위치를 클릭하세요.</div>
@@ -335,7 +338,6 @@
         </div>
         <div id="resultArea"></div>
       </div>
-
     </div>
 
   </div>
@@ -358,7 +360,23 @@ let mobilePaired = false;
 let userRegistered = false;        // 휴대폰 등록 완료 여부 (키패드 활성화 조건)
 let pairingStatusKey = 'pairingWait';
 let pairingConnectedFlag = false;
+let stage2Shown = false;           // QR 스캔 후 VIK(2단계) 표시 여부
 const passwordLength = 4;
+
+// 데모2식 단계 전환: 처음엔 QR(1단계)만, 스캔되면 VIK(2단계) 표시
+function showStage1() {
+  stage2Shown = false;
+  const s1 = document.getElementById('stage1'), s2 = document.getElementById('stage2');
+  if (s1) s1.style.display = 'block';
+  if (s2) s2.style.display = 'none';
+}
+function showStage2() {
+  if (stage2Shown) return;
+  stage2Shown = true;
+  const s1 = document.getElementById('stage1'), s2 = document.getElementById('stage2');
+  if (s1) s1.style.display = 'none';
+  if (s2) s2.style.display = 'block';
+}
 
 // ─────────── 다국어 사전 ───────────
 const I18N = {
@@ -550,6 +568,7 @@ async function startAuth() {
     userInput = [];
     mobilePaired = false;
     userRegistered = false;
+    showStage1();                       // 새 세션·QR → 다시 1단계(QR만)로
     document.getElementById('sessionId').textContent = currentSid;
     document.getElementById('currentUser').textContent = currentUser;
     setPairingStatus('pairingWait', false);
@@ -583,6 +602,7 @@ async function startAuth() {
 
 socket.on('mobile-paired', () => {
   mobilePaired = true;
+  showStage2();                                   // QR 스캔됨 → VIK(2단계) 표시
   setPairingStatus('pairingConnected', false);   // 연결됨 · 등록 대기 (키패드는 아직 비활성)
   log('logPaired', 'success');
 });
@@ -590,6 +610,7 @@ socket.on('mobile-paired', () => {
 // 휴대폰에서 비밀번호 등록 완료 → PC 키패드 활성화 (데모1 4단계)
 socket.on('user-registered', ({ userId }) => {
   userRegistered = true;
+  showStage2();                                   // 안전장치: 등록 시에도 2단계 보장
   if (userId) { currentUser = userId; document.getElementById('currentUser').textContent = userId; }
   setPairingStatus('pairingRegistered', true);
   document.getElementById('padB').classList.remove('disabled');

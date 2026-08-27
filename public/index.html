@@ -314,6 +314,8 @@
     .qr-box { padding: 12px; }
     .session-info { font-size: 11px; }
     .pad-note { font-size: 12px; }
+    .pad-b { max-width: 300px; margin: 12px auto; }
+    .pad-b .b-cell { font-size: 20px; }
   }
   /* 휴대폰 가로(낮은 높이): 세로 공간 확보 + QR 높이 제한 + 푸터 숨김 */
   @media (max-height: 520px) {
@@ -326,6 +328,14 @@
     .qr-box { margin: 4px auto; padding: 8px; }
     .qr-box img { max-height: 52vh; }
     .footer { display: none; }
+    /* stage2(VIK 키패드) 가로 모드 압축 */
+    .pad-note { display: none; }
+    .progress { margin: 5px 0; }
+    .pad-b { max-width: 33vh; margin: 5px auto; gap: 6px; }
+    .pad-b .b-cell { font-size: 14px; }
+    .controls { margin-top: 6px; gap: 8px; }
+    .controls .btn { padding: 8px; font-size: 13px; }
+    #resultArea .result { padding: 8px 12px; font-size: 13px; }
   }
 </style>
 </head>

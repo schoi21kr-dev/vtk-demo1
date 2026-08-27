@@ -24,7 +24,7 @@
     background: var(--navy-dark);
     color: white;
     min-height: 100vh;
-    padding: 16px;
+    padding: 8px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -463,6 +463,7 @@ function renderPadA() {
       const panel = document.getElementById('pwPanel');
       panel.style.display = (panel.style.display === 'none') ? 'flex' : 'none';
       if (panel.style.display === 'flex') document.getElementById('pwNew').focus();
+      setTimeout(fitToScreen, 0);   // 변경창 열고닫을 때 다시 화면에 맞춤
     };
   }
   const apply = document.getElementById('pwApply');
@@ -474,6 +475,7 @@ function renderPadA() {
   if (nb) nb.onclick = phoneNewSession;
 
   rendered = true;
+  setTimeout(fitToScreen, 0);   // 화면 높이에 맞춰 전체 축소 (가로·세로 모두 한 화면에)
 }
 
 // 휴대폰에서 VNK 재배치 요청 — 서버가 새 π를 push하면 pi-updated로 재렌더됨
@@ -548,6 +550,23 @@ function flashMsg(text) {
 
 document.getElementById('langKo').onclick = () => setLanguage('ko');
 document.getElementById('langEn').onclick = () => setLanguage('en');
+// 화면(특히 가로 보기)에서 phone-frame 전체가 뷰포트에 들어오도록 자동 축소
+function fitToScreen() {
+  const f = document.querySelector('.phone-frame');
+  if (!f) return;
+  f.style.zoom = '1';
+  const avail = window.innerHeight - 24;
+  let h = f.getBoundingClientRect().height;
+  let z = 1;
+  for (let i = 0; i < 6 && h > avail; i++) {
+    z = Math.max(0.42, z * (avail / h) * 0.99);
+    f.style.zoom = String(Math.round(z * 1000) / 1000);
+    h = f.getBoundingClientRect().height;
+  }
+}
+window.addEventListener('resize', fitToScreen);
+window.addEventListener('orientationchange', () => setTimeout(fitToScreen, 250));
+
 applyLanguage();
 init();
 </script>

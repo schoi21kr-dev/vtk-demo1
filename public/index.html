@@ -108,13 +108,23 @@
   .qr-section { text-align: center; }
   .qr-box {
     background: white;
-    padding: 24px;
+    padding: 20px;
     border: 2px solid var(--border);
     border-radius: 12px;
-    display: inline-block;
-    margin: 12px 0;
-    min-height: 280px;
-    min-width: 280px;
+    display: block;
+    width: fit-content;
+    max-width: 100%;
+    margin: 12px auto;
+    box-sizing: border-box;
+  }
+  .qr-box img {
+    display: block;
+    max-width: 100%;
+    max-height: 60vh;
+    width: auto;
+    height: auto;
+    border-radius: 8px;
+    margin: 0 auto;
   }
   .qr-instruction {
     background: var(--amber-light);
@@ -291,6 +301,31 @@
   }
   @media (max-width: 900px) {
     .main-grid { grid-template-columns: 1fr; }
+  }
+  /* 휴대폰 세로: 헤더·여백 축소, QR은 폭에 맞춰 자동 축소 */
+  @media (max-width: 600px) {
+    body { padding: 10px; }
+    .header { flex-direction: column; align-items: flex-start; gap: 10px; padding: 14px 16px; margin-bottom: 16px; }
+    .header h1 { font-size: 16px; letter-spacing: 0.5px; }
+    .header-right { width: 100%; justify-content: space-between; gap: 8px; }
+    .header .badge { font-size: 11px; padding: 5px 10px; letter-spacing: 1px; }
+    .panel { padding: 16px; }
+    .panel h2 { font-size: 16px; }
+    .qr-box { padding: 12px; }
+    .session-info { font-size: 11px; }
+    .pad-note { font-size: 12px; }
+  }
+  /* 휴대폰 가로(낮은 높이): 세로 공간 확보 + QR 높이 제한 + 푸터 숨김 */
+  @media (max-height: 520px) {
+    body { padding: 8px; }
+    .header { padding: 6px 14px; margin-bottom: 8px; }
+    .header h1 { font-size: 15px; }
+    .session-info { margin-bottom: 6px; padding: 5px 12px; }
+    .panel { padding: 10px; }
+    .panel h2 { margin-bottom: 6px; padding-bottom: 6px; font-size: 15px; }
+    .qr-box { margin: 4px auto; padding: 8px; }
+    .qr-box img { max-height: 52vh; }
+    .footer { display: none; }
   }
 </style>
 </head>

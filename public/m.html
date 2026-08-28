@@ -204,8 +204,10 @@
     font-weight: bold;
     font-size: 14px;
   }
+  .result-banner { transition: opacity 0.5s ease; }
   .result-banner.success { background: var(--green-bg); color: var(--green); }
   .result-banner.failure { background: var(--red-bg); color: var(--red); }
+  .result-banner.fade { opacity: 0; }
   .reshuffle-flash {
     margin-bottom: 14px;
     padding: 12px 16px;
@@ -287,7 +289,7 @@ const I18N = {
     pwLabel: 'YOUR PASSWORD',
     posGuide: '비밀번호 위치 (순서대로):',
     noteChannel: '이 π는 PC로 전송되지 않음',
-    resultSuccess: '✓ PC에서 인증 성공!',
+    resultSuccess: '✓ 인증 성공',
     resultFailure: '✗ PC에서 인증 실패',
     errNoSid: '세션 ID 없음',
     errNoSidMsg: 'PC 화면의 QR 코드를 다시 스캔하거나, URL에 ?s=세션ID 파라미터가 포함되어 있는지 확인하세요.',
@@ -318,7 +320,7 @@ const I18N = {
     pwLabel: 'YOUR PASSWORD',
     posGuide: 'Password positions (in order):',
     noteChannel: 'This π is never sent to the PC',
-    resultSuccess: '✓ Authentication successful on the PC!',
+    resultSuccess: '✓ Authentication successful',
     resultFailure: '✗ Authentication failed on the PC',
     errNoSid: 'No session ID',
     errNoSidMsg: 'Please scan the QR code on the PC screen again, or check that the URL contains the ?s=SESSION_ID parameter.',
@@ -349,6 +351,8 @@ let LANG = (function () {
 function t(key) { return (I18N[LANG] && I18N[LANG][key] !== undefined) ? I18N[LANG][key] : I18N.ko[key]; }
 
 let lastResult = null;      // 인증 결과 배너 상태
+let successActive = false;  // '인증 성공' 배너가 표시 중인지 (재렌더 후에도 유지)
+let successTimer = null;    // 성공 배너 자동 사라짐 타이머
 function applyLanguage() {
   document.documentElement.lang = LANG;
   const ko = document.getElementById('langKo'), en = document.getElementById('langEn');
@@ -455,6 +459,9 @@ function renderPadA() {
 
   document.getElementById('content').innerHTML = html;
 
+  // 인증 성공 배너가 표시 중이면 재렌더 후에도 다시 그려서 '잠깐 보였다 사라짐'이 이어지게 함
+  if (successActive) applySuccessBanner();
+
   // 비밀번호 변경 UI 배선 (인증 성공 후에만 노출됨)
   const toggle = document.getElementById('pwToggle');
   if (toggle) {
@@ -521,20 +528,45 @@ socket.on('auth-result', ({ success }) => {
     pwChangeUnlocked = true;                        // 인증 1회 성공 → 비밀번호 변경 허용
     const box = document.getElementById('pwChange');
     if (box) box.style.display = 'block';
+    showSuccessBanner();                            // '인증 성공' 배너를 잠깐 보였다가 사라지게 함
+  } else {
+    const banner = document.getElementById('resultBanner');
+    if (banner) banner.innerHTML =
+      '<div class="result-banner failure">' + t('resultFailure') + '</div>';
   }
-  const banner = document.getElementById('resultBanner');
-  if (!banner) return;
-  banner.innerHTML = success
-    ? '<div class="result-banner success">' + t('resultSuccess') + '</div>'
-    : '<div class="result-banner failure">' + t('resultFailure') + '</div>';
 });
+
+// '인증 성공' 배너: 잠깐 나타났다가 자동으로 사라짐 (데모2 VIK와 동일한 동작)
+function applySuccessBanner() {
+  const banner = document.getElementById('resultBanner');
+  if (banner) banner.innerHTML =
+    '<div class="result-banner success">' + t('resultSuccess') + '</div>';
+}
+function showSuccessBanner() {
+  successActive = true;
+  applySuccessBanner();
+  if (successTimer) clearTimeout(successTimer);
+  // 1.4초 표시 → 0.5초 페이드 → 제거 (자동 재배치로 재렌더돼도 유지되도록 successActive로 재적용)
+  successTimer = setTimeout(() => {
+    const b = document.querySelector('#resultBanner .result-banner');
+    if (b) b.classList.add('fade');
+    setTimeout(() => {
+      successActive = false;
+      successTimer = null;
+      const banner = document.getElementById('resultBanner');
+      if (banner) banner.innerHTML = '';
+    }, 500);
+  }, 1400);
+}
 
 // 서버가 새 π를 밀어주면(인증 성공 시 자동 재배치 / 수동 재배치) VNK를 새 위치로 다시 그림
 socket.on('pi-updated', ({ pi: newPi, auto }) => {
   if (!newPi || !rendered) return;
   curPi = newPi;
   renderPadA();                     // 현재 비밀번호로 새 위치 재계산·재렌더
-  flashMsg(auto ? t('flashAuto') : t('flashManual'));
+  // 인증 성공 자동 재배치(auto)일 때는 '인증 성공' 배너만 잠깐 보이게 하고 별도 안내는 표시하지 않음.
+  // 수동 재배치일 때만 새 위치 안내 플래시를 보여준다.
+  if (!auto) flashMsg(t('flashManual'));
 });
 
 function flashMsg(text) {

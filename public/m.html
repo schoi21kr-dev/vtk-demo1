@@ -89,18 +89,19 @@
     line-height: 1.6;
   }
   /* 체험용 비밀번호 안내 */
+  /* 체험용 비밀번호 안내 박스 — 1.5배 확대 */
   .demo-hint {
     background: rgba(212, 165, 116, 0.15);
     border: 1px solid rgba(212, 165, 116, 0.5);
-    padding: 10px 14px;
-    border-radius: 8px;
-    margin-bottom: 14px;
-    font-size: 13px;
+    padding: 15px 21px;
+    border-radius: 12px;
+    margin-bottom: 21px;
+    font-size: 20px;
     color: var(--amber-bright);
     line-height: 1.6;
     text-align: center;
   }
-  .demo-hint b { letter-spacing: 2px; }
+  .demo-hint b { letter-spacing: 3px; font-size: 22px; }
   .loading {
     text-align: center;
     padding: 40px 20px;
@@ -260,8 +261,6 @@
 <body>
 <div class="phone-frame">
   <div class="header">
-    <h1>📱 VTK Authenticator</h1>
-    <p id="headerSub">Channel ① · Mobile · VNK (숫자표시)</p>
     <div class="header-row">
       <div class="lang-switch"><button id="langKo" class="on">KO</button><button id="langEn">EN</button></div>
       <div class="badge" id="statusBadge">CONNECTING...</div>

@@ -259,6 +259,8 @@
   .pc-progress .dots { display: flex; gap: 8px; }
   .pc-progress .dots i { width: 12px; height: 12px; border-radius: 50%; background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.25); }
   .pc-progress .dots i.on { background: var(--amber); border-color: var(--amber-bright); }
+  /* '새 세션(QR 재발급)' 안내 — 맨 아래에 계속 표시 */
+  .session-notice { margin-top: 14px; padding: 12px 16px; border-radius: 8px; background: rgba(212,165,116,0.18); border: 1px solid var(--amber); color: var(--amber-bright); font-size: 13px; font-weight: bold; text-align: center; line-height: 1.5; }
   .error-screen {
     text-align: center;
     padding: 40px 20px;
@@ -490,6 +492,7 @@ function renderPadA() {
       </div>
       <div id="pwMsg" class="pw-msg"></div>
     </div>
+    <div id="sessionNotice"></div>
   `;
 
   document.getElementById('content').innerHTML = html;
@@ -497,6 +500,7 @@ function renderPadA() {
   // 인증 성공 배너가 표시 중이면 재렌더 후에도 계속 표시
   if (successActive) applySuccessBanner();
   applyPcProgress();   // PC 입력 진행 점·인증제출 버튼 상태 재적용
+  applySessionNotice();   // '새 세션(QR 재발급)' 안내가 있으면 맨 아래에 계속 표시
 
   // 비밀번호 변경 UI 배선 (인증 성공 후에만 노출됨)
   const toggle = document.getElementById('pwToggle');
@@ -536,10 +540,17 @@ async function phoneReshuffle() {
 }
 
 // 휴대폰에서 새 세션 요청 — PC가 새 QR을 재발급하도록 신호
+let sessionNoticeActive = false;   // '새 QR 재스캔' 안내를 맨 아래에 계속 표시
+function applySessionNotice() {
+  const el = document.getElementById('sessionNotice');
+  if (el) el.innerHTML = sessionNoticeActive
+    ? '<div class="session-notice">' + t('newSessionAsked') + '</div>' : '';
+}
 function phoneNewSession() {
   socket.emit('request-new-session', { sid });
   clearSuccessBanner();
-  flashMsg(t('newSessionAsked'));
+  sessionNoticeActive = true;      // 새 QR을 다시 스캔할 때까지 안내 유지
+  applySessionNotice();
 }
 
 // ── PC(VIK) 원격 제어: 인증 제출 / 다시 입력 ──

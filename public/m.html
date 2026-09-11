@@ -473,19 +473,15 @@ function renderPadA() {
   html += `</div>`;
 
   html += `
-    <div class="pc-progress" id="pcProgress">
-      <span class="lbl">${t('pcInputLabel')}</span>
-      <span class="dots"><i></i><i></i><i></i><i></i></span>
-    </div>
     <div class="phone-controls top">
       <button class="btn-ctl" id="clearBtn">${t('btnReset')}</button>
       <button class="btn-ctl primary" id="submitBtn" disabled>${t('btnSubmit')}</button>
     </div>
-    <div id="resultBanner"></div>
     <div class="phone-controls">
       <button class="btn-ctl" id="reshuffleBtn">${t('btnReshuffle')}</button>
       <button class="btn-ctl" id="newSessionBtn">${t('btnNewSession')}</button>
     </div>
+    <div id="resultBanner"></div>
     <div class="pw-change" id="pwChange" style="display:${pwChangeUnlocked ? 'block' : 'none'};">
       <a href="#" id="pwToggle" class="pw-toggle">${t('pwChangeLink')}</a>
       <div id="pwPanel" class="pw-panel" style="display:none;">
@@ -547,10 +543,9 @@ function phoneNewSession() {
 }
 
 // ── PC(VIK) 원격 제어: 인증 제출 / 다시 입력 ──
-let pcProgress = { count: 0, len: 4 };   // PC가 클릭한 좌표 수
+let pcProgress = { count: 0, len: 4 };   // PC가 클릭한 좌표 수 (인증제출 버튼 활성화 판단용)
 function applyPcProgress() {
-  const dots = document.querySelectorAll('#pcProgress .dots i');
-  dots.forEach((d, i) => d.classList.toggle('on', i < pcProgress.count));
+  // PC 입력 진행 표시는 화면에 두지 않음 — PC(VIK)에 이미 표시되므로 버튼 활성화만 반영
   const sb = document.getElementById('submitBtn');
   if (sb) sb.disabled = !(pcProgress.len > 0 && pcProgress.count >= pcProgress.len);
 }
@@ -627,9 +622,9 @@ socket.on('pi-updated', ({ pi: newPi, auto }) => {
   if (!newPi || !rendered) return;
   curPi = newPi;
   // 수동 재배치는 새 라운드 시작 → 성공 배너 제거. 성공 자동 재배치(auto)는 배너 유지.
+  // (VNK 재배치 안내 플래시는 표시하지 않음)
   if (!auto) clearSuccessBanner();
   renderPadA();                     // 현재 비밀번호로 새 위치 재계산·재렌더
-  if (!auto) flashMsg(t('flashManual'));
 });
 
 function flashMsg(text) {

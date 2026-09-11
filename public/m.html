@@ -246,9 +246,19 @@
   .pw-msg { font-size: 12px; margin-top: 8px; min-height: 14px; }
   .pw-msg.ok { color: #86EFAC; }
   .pw-msg.ng { color: #FCA5A5; }
-  .phone-controls { display: flex; gap: 8px; margin-top: 16px; }
+  .phone-controls { display: flex; gap: 8px; margin-top: 10px; }
+  .phone-controls.top { margin-top: 14px; }
   .btn-ctl { flex: 1; padding: 11px 8px; border: 1px solid rgba(255,255,255,0.18); border-radius: 10px; background: rgba(255,255,255,0.08); color: #fff; font-size: 13px; font-weight: bold; cursor: pointer; font-family: inherit; }
   .btn-ctl:active { transform: scale(.98); }
+  .btn-ctl:disabled { opacity: 0.45; cursor: default; }
+  .btn-ctl.primary { background: var(--amber); color: var(--navy-dark); border-color: var(--amber); }
+  .btn-ctl.primary:disabled { background: rgba(212,165,116,0.30); color: rgba(15,24,56,0.55); border-color: transparent; }
+  /* PC 입력 진행 점 (PC의 VIK 클릭 수를 휴대폰에 표시) */
+  .pc-progress { display: flex; align-items: center; justify-content: center; gap: 10px; margin-top: 14px; }
+  .pc-progress .lbl { font-size: 12px; color: var(--text-muted); }
+  .pc-progress .dots { display: flex; gap: 8px; }
+  .pc-progress .dots i { width: 12px; height: 12px; border-radius: 50%; background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.25); }
+  .pc-progress .dots i.on { background: var(--amber); border-color: var(--amber-bright); }
   .error-screen {
     text-align: center;
     padding: 40px 20px;
@@ -322,6 +332,9 @@ const I18N = {
     pwHint: '기본 1357',
     btnReshuffle: '🎲 VNK 재배치 (새 π)',
     btnNewSession: '🔄 새 세션 (QR 재발급)',
+    btnReset: '↺ 다시 입력',
+    btnSubmit: '✓ 인증 제출',
+    pcInputLabel: 'PC 입력',
     newSessionAsked: '🔄 PC에 새 QR이 발급되었습니다 — 새 QR을 다시 스캔하세요'
   },
   en: {
@@ -354,6 +367,9 @@ const I18N = {
     pwHint: 'Default 1357',
     btnReshuffle: '🎲 Reshuffle VNK (new π)',
     btnNewSession: '🔄 New session (reissue QR)',
+    btnReset: '↺ Clear',
+    btnSubmit: '✓ Submit',
+    pcInputLabel: 'PC input',
     newSessionAsked: '🔄 A new QR has been issued on the PC — scan the new QR again'
   }
 };
@@ -457,7 +473,19 @@ function renderPadA() {
   html += `</div>`;
 
   html += `
+    <div class="pc-progress" id="pcProgress">
+      <span class="lbl">${t('pcInputLabel')}</span>
+      <span class="dots"><i></i><i></i><i></i><i></i></span>
+    </div>
+    <div class="phone-controls top">
+      <button class="btn-ctl" id="clearBtn">${t('btnReset')}</button>
+      <button class="btn-ctl primary" id="submitBtn" disabled>${t('btnSubmit')}</button>
+    </div>
     <div id="resultBanner"></div>
+    <div class="phone-controls">
+      <button class="btn-ctl" id="reshuffleBtn">${t('btnReshuffle')}</button>
+      <button class="btn-ctl" id="newSessionBtn">${t('btnNewSession')}</button>
+    </div>
     <div class="pw-change" id="pwChange" style="display:${pwChangeUnlocked ? 'block' : 'none'};">
       <a href="#" id="pwToggle" class="pw-toggle">${t('pwChangeLink')}</a>
       <div id="pwPanel" class="pw-panel" style="display:none;">
@@ -466,16 +494,13 @@ function renderPadA() {
       </div>
       <div id="pwMsg" class="pw-msg"></div>
     </div>
-    <div class="phone-controls">
-      <button class="btn-ctl" id="reshuffleBtn">${t('btnReshuffle')}</button>
-      <button class="btn-ctl" id="newSessionBtn">${t('btnNewSession')}</button>
-    </div>
   `;
 
   document.getElementById('content').innerHTML = html;
 
-  // 인증 성공 배너가 표시 중이면 재렌더 후에도 다시 그려서 '잠깐 보였다 사라짐'이 이어지게 함
+  // 인증 성공 배너가 표시 중이면 재렌더 후에도 계속 표시
   if (successActive) applySuccessBanner();
+  applyPcProgress();   // PC 입력 진행 점·인증제출 버튼 상태 재적용
 
   // 비밀번호 변경 UI 배선 (인증 성공 후에만 노출됨)
   const toggle = document.getElementById('pwToggle');
@@ -495,6 +520,10 @@ function renderPadA() {
   if (rb) rb.onclick = phoneReshuffle;
   const nb = document.getElementById('newSessionBtn');
   if (nb) nb.onclick = phoneNewSession;
+  const cb = document.getElementById('clearBtn');
+  if (cb) cb.onclick = phoneClear;
+  const sb = document.getElementById('submitBtn');
+  if (sb) sb.onclick = phoneSubmit;
 
   rendered = true;
   setTimeout(fitToScreen, 0);   // 화면 높이에 맞춰 전체 축소 (가로·세로 모두 한 화면에)
@@ -513,8 +542,33 @@ async function phoneReshuffle() {
 // 휴대폰에서 새 세션 요청 — PC가 새 QR을 재발급하도록 신호
 function phoneNewSession() {
   socket.emit('request-new-session', { sid });
+  clearSuccessBanner();
   flashMsg(t('newSessionAsked'));
 }
+
+// ── PC(VIK) 원격 제어: 인증 제출 / 다시 입력 ──
+let pcProgress = { count: 0, len: 4 };   // PC가 클릭한 좌표 수
+function applyPcProgress() {
+  const dots = document.querySelectorAll('#pcProgress .dots i');
+  dots.forEach((d, i) => d.classList.toggle('on', i < pcProgress.count));
+  const sb = document.getElementById('submitBtn');
+  if (sb) sb.disabled = !(pcProgress.len > 0 && pcProgress.count >= pcProgress.len);
+}
+// PC가 4개 모두 클릭했을 때만 제출 (PC가 좌표를 제출)
+function phoneSubmit() {
+  if (pcProgress.count < pcProgress.len) return;
+  socket.emit('request-submit', { sid });
+}
+// PC 입력 초기화 + 휴대폰 성공 배너 제거
+function phoneClear() {
+  socket.emit('request-clear', { sid });
+  clearSuccessBanner();
+}
+// 서버가 중계한 PC 입력 진행상황 수신 → 진행 점·인증제출 버튼 갱신
+socket.on('pc-progress', ({ count, len }) => {
+  pcProgress = { count: count || 0, len: len || 4 };
+  applyPcProgress();
+});
 
 // 비밀번호 변경 (이번 세션에만 적용, 저장 안 함) — 새 비밀번호로 재등록 후 VNK 재렌더
 async function applyPasswordChange() {
@@ -551,7 +605,7 @@ socket.on('auth-result', ({ success }) => {
   }
 });
 
-// '인증 성공' 배너: 잠깐 나타났다가 자동으로 사라짐 (데모2 VIK와 동일한 동작)
+// '인증 성공' 배너: PC처럼 계속 표시 (다시 입력·재배치·새 세션 전까지 유지)
 function applySuccessBanner() {
   const banner = document.getElementById('resultBanner');
   if (banner) banner.innerHTML =
@@ -560,27 +614,21 @@ function applySuccessBanner() {
 function showSuccessBanner() {
   successActive = true;
   applySuccessBanner();
-  if (successTimer) clearTimeout(successTimer);
-  // 1.4초 표시 → 0.5초 페이드 → 제거 (자동 재배치로 재렌더돼도 유지되도록 successActive로 재적용)
-  successTimer = setTimeout(() => {
-    const b = document.querySelector('#resultBanner .result-banner');
-    if (b) b.classList.add('fade');
-    setTimeout(() => {
-      successActive = false;
-      successTimer = null;
-      const banner = document.getElementById('resultBanner');
-      if (banner) banner.innerHTML = '';
-    }, 500);
-  }, 1400);
+}
+function clearSuccessBanner() {
+  successActive = false;
+  if (successTimer) { clearTimeout(successTimer); successTimer = null; }
+  const banner = document.getElementById('resultBanner');
+  if (banner) banner.innerHTML = '';
 }
 
 // 서버가 새 π를 밀어주면(인증 성공 시 자동 재배치 / 수동 재배치) VNK를 새 위치로 다시 그림
 socket.on('pi-updated', ({ pi: newPi, auto }) => {
   if (!newPi || !rendered) return;
   curPi = newPi;
+  // 수동 재배치는 새 라운드 시작 → 성공 배너 제거. 성공 자동 재배치(auto)는 배너 유지.
+  if (!auto) clearSuccessBanner();
   renderPadA();                     // 현재 비밀번호로 새 위치 재계산·재렌더
-  // 인증 성공 자동 재배치(auto)일 때는 '인증 성공' 배너만 잠깐 보이게 하고 별도 안내는 표시하지 않음.
-  // 수동 재배치일 때만 새 위치 안내 플래시를 보여준다.
   if (!auto) flashMsg(t('flashManual'));
 });
 

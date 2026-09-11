@@ -120,7 +120,6 @@
   .qr-box img {
     display: block;
     max-width: 100%;
-    max-height: 60vh;
     width: auto;
     height: auto;
     border-radius: 8px;
@@ -377,10 +376,7 @@
           <div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div>
         </div>
         <div class="pad-b disabled" id="padB"></div>
-        <div class="controls">
-          <button class="btn btn-secondary" onclick="resetInput()" data-i18n="btnReset">↺ 다시 입력</button>
-          <button class="btn btn-primary" id="submitBtn" onclick="submitAuth()" disabled data-i18n="btnSubmit">인증 제출</button>
-        </div>
+        <div class="pad-note" data-i18n="ctlMovedNote" style="margin-top:12px;">다시 입력·인증 제출 버튼은 휴대폰으로 이동했습니다.</div>
         <div id="resultArea"></div>
       </div>
     </div>
@@ -438,6 +434,7 @@ const I18N = {
     padHeading: '② VIK · 무표시 (PC)',
     padNote: '휴대폰의 VNK(숫자표시)에서 비밀번호 4자리의 <b>위치</b>를 확인한 뒤, 아래 VIK에서 같은 위치를 클릭하세요.',
     btnReset: '↺ 다시 입력', btnSubmit: '인증 제출', btnNewChallenge: '🔄 새 세션 (QR 재발급)', btnReshuffle: '🎲 VNK 재배치 (새 π)',
+    ctlMovedNote: '‘다시 입력’·‘인증 제출’은 휴대폰에서 조작합니다.',
     logTitle: '┃ MESSAGE FLOW LOG (실시간 서버 통신) ┃',
     footer1: 'VTK Multi-Device Demo · Live Server with Socket.IO',
     footer2: '옵틱라이트 주식회사 · PG502 검토용 시연 · 2026',
@@ -489,6 +486,7 @@ const I18N = {
     padHeading: '② VIK · Blank (PC)',
     padNote: 'Find the <b>positions</b> of your 4-digit password on the VNK (numbered) on your phone, then click the same positions on the VIK below.',
     btnReset: '↺ Clear', btnSubmit: 'Submit', btnNewChallenge: '🔄 New session (reissue QR)', btnReshuffle: '🎲 Reshuffle VNK (new π)',
+    ctlMovedNote: '‘Clear’ and ‘Submit’ are now operated from your phone.',
     logTitle: '┃ MESSAGE FLOW LOG (live server communication) ┃',
     footer1: 'VTK Multi-Device Demo · Live Server with Socket.IO',
     footer2: 'Optic Light Co., Ltd. · PG502 review demonstration · 2026',
@@ -619,7 +617,7 @@ async function startAuth() {
     setPairingStatus('pairingWait', false);
     document.getElementById('padB').classList.add('disabled');
     document.getElementById('resultArea').innerHTML = '';
-    document.getElementById('submitBtn').disabled = true;
+    emitProgress();
 
     log('logSessionHead', 'info');
     log('logSessionId', 'system', { v: currentSid });
@@ -659,6 +657,7 @@ socket.on('user-registered', ({ userId }) => {
   if (userId) { currentUser = userId; document.getElementById('currentUser').textContent = userId; }
   setPairingStatus('pairingRegistered', true);
   document.getElementById('padB').classList.remove('disabled');
+  emitProgress();                                 // 휴대폰에 초기 진행상황(0/4) 전송
   log('logRegistered', 'success');
   log('logChan1', 'info');
   log('logChan2', 'info');
@@ -669,11 +668,25 @@ socket.on('renew-session', () => {
   startAuth();
 });
 
+// 휴대폰 '인증 제출' 원격 요청 → PC가 현재 입력한 좌표를 제출 (4개 모두 입력됐을 때만)
+socket.on('do-submit', () => {
+  if (userRegistered && userInput.length === passwordLength) submitAuth();
+});
+// 휴대폰 '다시 입력' 원격 요청 → PC 입력 초기화
+socket.on('do-clear', () => {
+  resetInput();
+});
+
+// PC 입력 진행상황(클릭 수)을 휴대폰에 전송 → 휴대폰의 인증제출 버튼 활성화·진행 점 갱신
+function emitProgress() {
+  if (currentSid) socket.emit('pc-progress', { sid: currentSid, count: userInput.length, len: passwordLength });
+}
+
 // 휴대폰에서 수동 재배치 → PC 입력만 초기화 (π는 PC로 오지 않음)
 socket.on('reshuffled', () => {
   userInput = [];
   updateProgressDots();
-  document.getElementById('submitBtn').disabled = true;
+  emitProgress();
   document.getElementById('resultArea').innerHTML = '';
   updateInputDisplay();
 });
@@ -703,8 +716,8 @@ function handleCellClick(idx, cellElem) {
   log('logClick', 'info', { i: idx });
   updateInputDisplay();
   updateProgressDots();
+  emitProgress();                                  // 휴대폰에 진행상황 전송 (제출 버튼은 휴대폰에 있음)
   if (userInput.length === passwordLength) {
-    document.getElementById('submitBtn').disabled = false;
     log('logSeqDone', 'success');
   }
 }
@@ -730,7 +743,7 @@ function resetInput() {
   userInput = [];
   updateInputDisplay();
   updateProgressDots();
-  document.getElementById('submitBtn').disabled = true;
+  emitProgress();
   document.getElementById('resultArea').innerHTML = '';
   log('logReset', 'system');
 }
@@ -740,7 +753,7 @@ function resetInput() {
 function prepareNextRound() {
   userInput = [];
   updateProgressDots();
-  document.getElementById('submitBtn').disabled = true;
+  emitProgress();
   const display = document.getElementById('inputDisplay');
   if (display) display.textContent = t('seqReshuffled');
 }
@@ -759,8 +772,8 @@ async function manualReshuffle() {
     userInput = [];
     lastAuthSuccess = null;
     document.getElementById('resultArea').innerHTML = '';
-    document.getElementById('submitBtn').disabled = true;
     updateProgressDots();
+    emitProgress();
     const display = document.getElementById('inputDisplay');
     if (display) display.textContent = t('seqReshuffled');
     log('logManualReshuffle', 'info');

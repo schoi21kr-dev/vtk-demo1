@@ -221,6 +221,18 @@ io.on('connection', (socket) => {
       console.log(`[Socket] 휴대폰 새 세션 요청 → PC(${sid})에 renew-session`);
     }
   });
+  // 휴대폰 '인증 제출' 요청 → PC(VIK)가 현재 입력한 좌표를 제출하도록 신호
+  socket.on('request-submit', ({ sid }) => {
+    if (sid) io.to(`pc-${sid}`).emit('do-submit');
+  });
+  // 휴대폰 '다시 입력' 요청 → PC(VIK) 입력 초기화 신호
+  socket.on('request-clear', ({ sid }) => {
+    if (sid) io.to(`pc-${sid}`).emit('do-clear');
+  });
+  // PC 입력 진행상황(클릭 수) → 휴대폰에 중계 (인증제출 버튼 활성화·진행 점 표시용)
+  socket.on('pc-progress', ({ sid, count, len }) => {
+    if (sid) io.to(`mobile-${sid}`).emit('pc-progress', { count, len });
+  });
 });
 
 // 정리: 30분 이상 미사용 세션 자동 삭제

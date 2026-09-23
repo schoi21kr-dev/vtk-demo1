@@ -151,10 +151,14 @@
   .pad-b {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
-    gap: 8px;
-    max-width: 360px;
+    grid-template-rows: repeat(4, 1fr);
+    gap: 12px;
+    width: 400px;
+    max-width: 100%;
+    height: 400px;               /* QR(400px)과 같은 크기의 정사각 영역 */
     margin: 16px auto;
   }
+  .pad-b .b-cell { aspect-ratio: auto; }   /* 그리드 셀을 채우도록 (400×400에 맞춤) */
   .b-cell {
     aspect-ratio: 1;
     background: var(--pc-cyan-light);
@@ -694,15 +698,14 @@ socket.on('reshuffled', () => {
   updateInputDisplay();
 });
 
-// 스캔 전: 일반 순서 키패드(1·2·3/4·5·6/7·8·9/0) — 표시만, 클릭 없음
+// 스캔 전: 무표시 VIK (숫자 없이 · 표시만, 클릭 없음)
 function renderStandardPad() {
   const padB = document.getElementById('padB');
   padB.innerHTML = '';
-  const layout = [1, 2, 3, 4, 5, 6, 7, 8, 9, null, 0, null];
   for (let i = 0; i < 12; i++) {
     const cell = document.createElement('div');
-    if (layout[i] === null) { cell.className = 'b-cell empty'; }
-    else { cell.className = 'b-cell'; cell.textContent = layout[i]; }
+    if (i === 9 || i === 11) { cell.className = 'b-cell empty'; }
+    else { cell.className = 'b-cell'; cell.textContent = '·'; }
     padB.appendChild(cell);
   }
 }

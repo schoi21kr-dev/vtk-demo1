@@ -79,6 +79,7 @@
     grid-template-columns: 1fr 1fr;
     gap: 24px;
     margin-bottom: 24px;
+    align-items: start;
   }
   .reg-area {
     background: var(--amber-light);
@@ -357,27 +358,30 @@
       &nbsp;&nbsp;<span class="label" data-i18n="userLabel">USER:</span><span id="currentUser">-</span>
     </div>
 
-    <!-- 단계 1: QR 스캔 안내 (처음엔 이것만 표시) -->
-    <div id="stage1">
-      <div class="panel qr-section">
-        <h2 data-i18n="qrHeading">① 휴대폰으로 QR 코드 스캔</h2>
-        <div class="qr-box" id="qrBox">
-          <div style="padding:60px 0;color:var(--text-muted)">QR 코드 로딩 중...</div>
+    <!-- QR 스캔 + VIK 입력을 한 화면에 나란히 표시 (좌: QR, 우: 키패드) -->
+    <div class="main-grid">
+      <!-- QR 스캔 (스캔 후에도 계속 표시) -->
+      <div id="stage1">
+        <div class="panel qr-section">
+          <h2 data-i18n="qrHeading">① 휴대폰으로 QR 코드 스캔</h2>
+          <div class="qr-box" id="qrBox">
+            <div style="padding:60px 0;color:var(--text-muted)">QR 코드 로딩 중...</div>
+          </div>
         </div>
       </div>
-    </div>
 
-    <!-- 단계 2: VIK 입력 (휴대폰이 QR을 스캔하면 표시) -->
-    <div id="stage2" style="display:none;">
-      <div class="panel">
-        <h2 data-i18n="padHeading">② VIK · 무표시 (PC)</h2>
-        <div class="pad-note" data-i18n-html="padNote">휴대폰의 VNK(숫자표시)에서 비밀번호 4자리의 <b>위치</b>를 확인한 뒤, 아래 VIK에서 같은 위치를 클릭하세요.</div>
-        <div class="progress" id="progressDots">
-          <div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div>
+      <!-- VIK 입력 (휴대폰 등록 전에는 비활성) -->
+      <div id="stage2">
+        <div class="panel">
+          <h2 data-i18n="padHeading">② VIK · 무표시 (PC)</h2>
+          <div class="pad-note" data-i18n-html="padNote">휴대폰의 VNK(숫자표시)에서 비밀번호 4자리의 <b>위치</b>를 확인한 뒤, 아래 VIK에서 같은 위치를 클릭하세요.</div>
+          <div class="progress" id="progressDots">
+            <div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div>
+          </div>
+          <div class="pad-b disabled" id="padB"></div>
+          <div class="pad-note" data-i18n="ctlMovedNote" style="margin-top:12px;">다시 입력·인증 제출 버튼은 휴대폰으로 이동했습니다.</div>
+          <div id="resultArea"></div>
         </div>
-        <div class="pad-b disabled" id="padB"></div>
-        <div class="pad-note" data-i18n="ctlMovedNote" style="margin-top:12px;">다시 입력·인증 제출 버튼은 휴대폰으로 이동했습니다.</div>
-        <div id="resultArea"></div>
       </div>
     </div>
 
@@ -405,18 +409,18 @@ let stage2Shown = false;           // QR 스캔 후 VIK(2단계) 표시 여부
 const passwordLength = 4;
 
 // 데모2식 단계 전환: 처음엔 QR(1단계)만, 스캔되면 VIK(2단계) 표시
+// 결합 화면: QR과 키패드를 항상 함께 표시 (전환하지 않음)
 function showStage1() {
   stage2Shown = false;
   const s1 = document.getElementById('stage1'), s2 = document.getElementById('stage2');
-  if (s1) s1.style.display = 'block';
-  if (s2) s2.style.display = 'none';
+  if (s1) s1.style.display = '';
+  if (s2) s2.style.display = '';
 }
 function showStage2() {
-  if (stage2Shown) return;
   stage2Shown = true;
   const s1 = document.getElementById('stage1'), s2 = document.getElementById('stage2');
-  if (s1) s1.style.display = 'none';
-  if (s2) s2.style.display = 'block';
+  if (s1) s1.style.display = '';
+  if (s2) s2.style.display = '';
 }
 
 // ─────────── 다국어 사전 ───────────

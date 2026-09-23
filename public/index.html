@@ -374,12 +374,10 @@
       <div id="stage2">
         <div class="panel">
           <h2 data-i18n="padHeading">② VIK · 무표시 (PC)</h2>
-          <div class="pad-note" data-i18n-html="padNote">휴대폰의 VNK(숫자표시)에서 비밀번호 4자리의 <b>위치</b>를 확인한 뒤, 아래 VIK에서 같은 위치를 클릭하세요.</div>
           <div class="progress" id="progressDots">
             <div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div>
           </div>
-          <div class="pad-b disabled" id="padB"></div>
-          <div class="pad-note" data-i18n="ctlMovedNote" style="margin-top:12px;">다시 입력·인증 제출 버튼은 휴대폰으로 이동했습니다.</div>
+          <div class="pad-b" id="padB"></div>
           <div id="resultArea"></div>
         </div>
       </div>
@@ -639,7 +637,7 @@ async function startAuth() {
            onerror="this.parentNode.innerHTML='<div style=\\'padding:40px;color:#991B1B\\'>'+t('qrFailed')+'</div>'">
     `;
 
-    renderPadB();
+    renderStandardPad();             // 스캔 전: 일반 순서 키패드 표시
     updateInputDisplay();
     updateProgressDots();
   } catch (err) {
@@ -660,6 +658,7 @@ socket.on('user-registered', ({ userId }) => {
   showStage2();                                   // 안전장치: 등록 시에도 2단계 보장
   if (userId) { currentUser = userId; document.getElementById('currentUser').textContent = userId; }
   setPairingStatus('pairingRegistered', true);
+  renderPadB();                                   // 스캔·등록됨 → 무표시 VIK로 전환 (VTK 작동)
   document.getElementById('padB').classList.remove('disabled');
   emitProgress();                                 // 휴대폰에 초기 진행상황(0/4) 전송
   log('logRegistered', 'success');
@@ -695,6 +694,20 @@ socket.on('reshuffled', () => {
   updateInputDisplay();
 });
 
+// 스캔 전: 일반 순서 키패드(1·2·3/4·5·6/7·8·9/0) — 표시만, 클릭 없음
+function renderStandardPad() {
+  const padB = document.getElementById('padB');
+  padB.innerHTML = '';
+  const layout = [1, 2, 3, 4, 5, 6, 7, 8, 9, null, 0, null];
+  for (let i = 0; i < 12; i++) {
+    const cell = document.createElement('div');
+    if (layout[i] === null) { cell.className = 'b-cell empty'; }
+    else { cell.className = 'b-cell'; cell.textContent = layout[i]; }
+    padB.appendChild(cell);
+  }
+}
+
+// 스캔·등록 후: 무표시 VIK 입력판 (VTK 작동) — 클릭으로 좌표 입력
 function renderPadB() {
   const padB = document.getElementById('padB');
   padB.innerHTML = '';

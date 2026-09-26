@@ -254,7 +254,7 @@
   .btn-ctl.primary { background: var(--amber); color: var(--navy-dark); border-color: var(--amber); }
   .btn-ctl.primary:disabled { background: rgba(212,165,116,0.30); color: rgba(15,24,56,0.55); border-color: transparent; }
   /* PC 입력 진행 점 (PC의 VIK 클릭 수를 휴대폰에 표시) */
-  .pc-progress { display: flex; align-items: center; justify-content: center; gap: 10px; margin-top: 14px; }
+  .pc-progress { display: flex; align-items: center; justify-content: center; gap: 10px; margin: 2px 0 12px; }
   .pc-progress .lbl { font-size: 12px; color: var(--text-muted); }
   .pc-progress .dots { display: flex; gap: 8px; }
   .pc-progress .dots i { width: 12px; height: 12px; border-radius: 50%; background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.25); }
@@ -465,6 +465,7 @@ function renderPadA() {
 
   let html = `
     <div class="demo-hint">${t('demoHint')}</div>
+    <div class="pc-progress"><span class="dots">${'<i></i>'.repeat(pcProgress.len || 4)}</span></div>
     <div class="pad-a">
   `;
   for (let i = 0; i < 12; i++) {
@@ -556,9 +557,10 @@ function phoneNewSession() {
 // ── PC(VIK) 원격 제어: 인증 제출 / 다시 입력 ──
 let pcProgress = { count: 0, len: 4 };   // PC가 클릭한 좌표 수 (인증제출 버튼 활성화 판단용)
 function applyPcProgress() {
-  // PC 입력 진행 표시는 화면에 두지 않음 — PC(VIK)에 이미 표시되므로 버튼 활성화만 반영
+  // PC(VIK)에서 입력할 때마다 안내문 아래 진행 점(4개)을 채움 + 버튼 활성화 반영
   const sb = document.getElementById('submitBtn');
   if (sb) sb.disabled = !(pcProgress.len > 0 && pcProgress.count >= pcProgress.len);
+  document.querySelectorAll('.pc-progress .dots i').forEach((d, i) => d.classList.toggle('on', i < pcProgress.count));
 }
 // PC가 4개 모두 클릭했을 때만 제출 (PC가 좌표를 제출)
 function phoneSubmit() {

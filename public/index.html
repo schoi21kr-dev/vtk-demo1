@@ -352,11 +352,6 @@
   <!-- 데모1 4단계: 등록을 휴대폰으로 이전 — PC엔 등록 패널 없음, 로드 시 세션·QR 자동 생성 -->
   <div id="authPanel">
 
-    <div class="session-info">
-      <span class="label" data-i18n="sessionLabel">SESSION:</span><span id="sessionId">-</span>
-      &nbsp;&nbsp;<span class="label" data-i18n="userLabel">USER:</span><span id="currentUser">-</span>
-    </div>
-
     <!-- 스캔 전: QR 코드 창만 표시 / 스캔 후: VIK 창만 가운데 표시 -->
     <div class="main-grid qr-only" id="mainGrid">
       <!-- QR 스캔 (스캔 전 표시) -->
@@ -610,8 +605,6 @@ async function startAuth() {
     mobilePaired = false;
     userRegistered = false;
     showStage1();                       // 새 세션·QR → 다시 1단계(QR만)로
-    document.getElementById('sessionId').textContent = currentSid;
-    document.getElementById('currentUser').textContent = currentUser;
     setPairingStatus('pairingWait', false);
     document.getElementById('padB').classList.add('disabled');
     document.getElementById('resultArea').innerHTML = '';
@@ -652,7 +645,7 @@ socket.on('mobile-paired', () => {
 socket.on('user-registered', ({ userId }) => {
   userRegistered = true;
   showStage2();                                   // 안전장치: 등록 시에도 2단계 보장
-  if (userId) { currentUser = userId; document.getElementById('currentUser').textContent = userId; }
+  if (userId) { currentUser = userId; }
   setPairingStatus('pairingRegistered', true);
   renderPadB();                                   // 스캔·등록됨 → 무표시 VIK로 전환 (VTK 작동)
   document.getElementById('padB').classList.remove('disabled');
@@ -830,7 +823,6 @@ async function submitAuth() {
 
 document.getElementById('langKo').onclick = () => setLanguage('ko');
 document.getElementById('langEn').onclick = () => setLanguage('en');
-document.getElementById('currentUser').textContent = currentUser;
 applyLanguage();
 startAuth();   // 데모1 4단계: 로드 시 세션·QR 자동 생성 (등록은 휴대폰에서)
 </script>

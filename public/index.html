@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>VTK 멀티디바이스 시연 · PC · 데모 1</title>
+<title>VTK 데모 1</title>
 <style>
   :root {
     --navy: #1E2761;
@@ -39,10 +39,12 @@
     color: white;
     padding: 24px 32px;
     border-radius: 12px;
-    margin-bottom: 24px;
+    max-width: 480px;
+    margin: 0 auto 24px;
     display: flex;
-    justify-content: space-between;
+    justify-content: center;
     align-items: center;
+    gap: 18px;
   }
   .header h1 { font-size: 22px; letter-spacing: 1px; }
   .header .badge {
@@ -81,6 +83,8 @@
     margin-bottom: 24px;
     align-items: start;
   }
+  /* 스캔 전: QR 코드 창만 가운데 표시 (VIK 창은 스캔 후 표시) */
+  .main-grid.qr-only { grid-template-columns: 1fr; max-width: 480px; margin-left: auto; margin-right: auto; }
   .reg-area {
     background: var(--amber-light);
     border: 2px dashed var(--amber);
@@ -283,7 +287,9 @@
     font-family: 'Consolas', monospace;
     font-size: 12px;
     color: var(--text-mid);
-    margin-bottom: 16px;
+    max-width: 480px;
+    margin: 0 auto 16px;
+    text-align: center;
     word-break: break-all;
   }
   .session-info .label {
@@ -305,9 +311,9 @@
   /* 휴대폰 세로: 헤더·여백 축소, QR은 폭에 맞춰 자동 축소 */
   @media (max-width: 600px) {
     body { padding: 10px; }
-    .header { flex-direction: column; align-items: flex-start; gap: 10px; padding: 14px 16px; margin-bottom: 16px; }
+    .header { flex-direction: row; align-items: center; justify-content: center; gap: 12px; padding: 14px 16px; margin-bottom: 16px; }
     .header h1 { font-size: 16px; letter-spacing: 0.5px; }
-    .header-right { width: 100%; justify-content: space-between; gap: 8px; }
+    .header-right { justify-content: center; gap: 8px; }
     .header .badge { font-size: 11px; padding: 5px 10px; letter-spacing: 1px; }
     .panel { padding: 16px; }
     .panel h2 { font-size: 16px; }
@@ -343,10 +349,9 @@
 <div class="container">
 
   <div class="header">
-    <h1 data-i18n="appTitle">VTK 멀티디바이스 시연 · PC (Live) · 데모 1</h1>
+    <h1 data-i18n="appTitle">VTK 데모 1</h1>
     <div class="header-right">
       <div class="lang-switch"><button id="langKo" class="on">KO</button><button id="langEn">EN</button></div>
-      <span class="badge">LEVEL 3 · HIGH ASSURANCE</span>
     </div>
   </div>
 
@@ -358,9 +363,9 @@
       &nbsp;&nbsp;<span class="label" data-i18n="userLabel">USER:</span><span id="currentUser">-</span>
     </div>
 
-    <!-- QR 스캔 + VIK 입력을 한 화면에 나란히 표시 (좌: QR, 우: 키패드) -->
-    <div class="main-grid">
-      <!-- QR 스캔 (스캔 후에도 계속 표시) -->
+    <!-- 스캔 전: QR 코드 창만 표시 / 스캔 후: VIK 창만 가운데 표시 -->
+    <div class="main-grid qr-only" id="mainGrid">
+      <!-- QR 스캔 (스캔 전 표시) -->
       <div id="stage1">
         <div class="panel qr-section">
           <h2 data-i18n="qrHeading">① 휴대폰으로 QR 코드 스캔</h2>
@@ -370,8 +375,8 @@
         </div>
       </div>
 
-      <!-- VIK 입력 (휴대폰 등록 전에는 비활성) -->
-      <div id="stage2">
+      <!-- VIK 입력 (스캔 후 표시) -->
+      <div id="stage2" style="display:none;">
         <div class="panel">
           <h2 data-i18n="padHeading">② VIK · 무표시 (PC)</h2>
           <div class="pad-b" id="padB"></div>
@@ -403,25 +408,25 @@ let pairingConnectedFlag = false;
 let stage2Shown = false;           // QR 스캔 후 VIK(2단계) 표시 여부
 const passwordLength = 4;
 
-// 데모2식 단계 전환: 처음엔 QR(1단계)만, 스캔되면 VIK(2단계) 표시
-// 결합 화면: QR과 키패드를 항상 함께 표시 (전환하지 않음)
+// 처음엔 QR 창만, 스캔되면 QR 창을 없애고 VIK 창만 가운데 표시
 function showStage1() {
   stage2Shown = false;
-  const s1 = document.getElementById('stage1'), s2 = document.getElementById('stage2');
+  const s1 = document.getElementById('stage1'), s2 = document.getElementById('stage2'), g = document.getElementById('mainGrid');
+  if (g) g.classList.add('qr-only');       // 스캔 전: QR 창만
   if (s1) s1.style.display = '';
-  if (s2) s2.style.display = '';
+  if (s2) s2.style.display = 'none';
 }
 function showStage2() {
   stage2Shown = true;
   const s1 = document.getElementById('stage1'), s2 = document.getElementById('stage2');
-  if (s1) s1.style.display = '';
+  if (s1) s1.style.display = 'none';       // 스캔 후: QR 창 제거
   if (s2) s2.style.display = '';
 }
 
 // ─────────── 다국어 사전 ───────────
 const I18N = {
   ko: {
-    appTitle: 'VTK 멀티디바이스 시연 · PC (Live) · 데모 1',
+    appTitle: 'VTK 데모 1',
     regTitle: '1단계 · 사용자 등록 및 인증',
     labelUserId: '사용자 ID',
     labelPassword: '시연용 4자리 비밀번호 (예: 7259)',
@@ -473,7 +478,7 @@ const I18N = {
     locale: 'ko-KR'
   },
   en: {
-    appTitle: 'VTK Multi-Device Demonstration · PC (Live) · Demo 1',
+    appTitle: 'VTK Demo 1',
     regTitle: 'Step 1 · User Registration & Authentication',
     labelUserId: 'User ID',
     labelPassword: '4-digit demo password (e.g. 7259)',

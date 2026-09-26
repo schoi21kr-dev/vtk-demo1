@@ -174,25 +174,21 @@
     user-select: none;
     font-weight: bold;
   }
-  .b-cell:hover {
-    background: var(--pc-cyan);
-    color: white;
-    transform: scale(1.03);
+  /* hover: 채움 강조 없이 테두리만 살짝 (커서가 올라가도 '눌림'처럼 보이지 않게) */
+  .b-cell:not(.empty):hover {
+    border-color: var(--pc-cyan-dark);
   }
-  .b-cell.clicked {
+  /* 누르는 동안에만 '눌림' 표시 → 손을 떼면 즉시 사라짐 */
+  .b-cell.pressing {
     background: var(--navy);
     color: var(--amber-bright);
     border-color: var(--navy);
+    transform: scale(0.97);
   }
   .b-cell.empty {
     background: #f8f8f8;
     border: 2px dashed #d0d0d0;
     cursor: default;
-  }
-  .b-cell.empty:hover {
-    background: #f8f8f8;
-    color: transparent;
-    transform: none;
   }
   .pad-b.disabled .b-cell { pointer-events: none; opacity: 0.5; }
   .input-display {
@@ -721,6 +717,15 @@ function renderPadB() {
       cell.dataset.index = i;
       cell.textContent = '·';
       cell.onclick = () => handleCellClick(i, cell);
+      // 누르는 동안에만 '눌림' 표시 (떼면 즉시 사라짐 · 잔상 없음)
+      const press = () => cell.classList.add('pressing');
+      const release = () => cell.classList.remove('pressing');
+      cell.onmousedown = press;
+      cell.onmouseup = release;
+      cell.onmouseleave = release;
+      cell.ontouchstart = press;
+      cell.ontouchend = release;
+      cell.ontouchcancel = release;
     }
     padB.appendChild(cell);
   }
@@ -728,8 +733,7 @@ function renderPadB() {
 
 function handleCellClick(idx, cellElem) {
   if (!userRegistered || userInput.length >= passwordLength) return;
-  cellElem.classList.add('clicked');
-  setTimeout(() => cellElem.classList.remove('clicked'), 300);
+  // 눌림 표시는 CSS :active(누르는 동안)로 처리 → 떼면 사라짐 (잔상 없음)
   userInput.push(idx);
   log('logClick', 'info', { i: idx });
   updateInputDisplay();

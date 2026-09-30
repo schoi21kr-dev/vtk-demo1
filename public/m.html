@@ -21,8 +21,8 @@
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body {
     font-family: 'Malgun Gothic', 'Apple SD Gothic Neo', sans-serif;
-    background: var(--navy-dark);
-    color: white;
+    background: #EBEEF2;
+    color: #1F2937;
     min-height: 100vh;
     padding: 8px;
     display: flex;
@@ -32,10 +32,11 @@
   .phone-frame {
     max-width: 400px;
     width: 100%;
-    background: var(--navy);
+    background: #ffffff;
     border-radius: 24px;
     padding: 24px 20px 28px 20px;
-    box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+    box-shadow: 0 8px 24px rgba(30,41,59,0.15);
+    border: 1px solid #E2E8F0;
     position: relative;
   }
   .phone-frame::before {
@@ -46,69 +47,69 @@
     transform: translateX(-50%);
     width: 80px;
     height: 6px;
-    background: var(--navy-dark);
+    background: #D5DBE3;
     border-radius: 4px;
   }
   .header {
     text-align: center;
     margin: 20px 0 18px 0;
     padding-bottom: 14px;
-    border-bottom: 1px solid rgba(255,255,255,0.1);
+    border-bottom: 1px solid #E2E8F0;
   }
   .header h1 {
     font-size: 18px;
-    color: var(--amber-bright);
+    color: var(--navy);
     margin-bottom: 4px;
     letter-spacing: 1px;
   }
   .header p { font-size: 12px; color: var(--text-muted); }
   .lang-switch { display: flex; gap: 5px; justify-content: center; margin-top: 8px; }
-  .lang-switch button { padding: 3px 10px; border: 1px solid rgba(255,255,255,0.3); background: transparent; color: rgba(255,255,255,0.75); border-radius: 6px; font-size: 11px; font-weight: bold; cursor: pointer; font-family: inherit; letter-spacing: 1px; }
+  .lang-switch button { padding: 3px 10px; border: 1px solid #CBD5E1; background: transparent; color: #475569; border-radius: 6px; font-size: 11px; font-weight: bold; cursor: pointer; font-family: inherit; letter-spacing: 1px; }
   .lang-switch button.on { background: var(--amber, #D4A574); border-color: var(--amber, #D4A574); color: #0F1838; }
   .badge {
     display: inline-block;
     margin-top: 8px;
     background: rgba(212, 165, 116, 0.2);
-    color: var(--amber-bright);
+    color: var(--amber-txt);
     padding: 4px 12px;
     border-radius: 12px;
     font-size: 11px;
     letter-spacing: 1px;
   }
-  .badge.live { background: rgba(134, 239, 172, 0.2); color: #86EFAC; }
+  .badge.live { background: rgba(22, 101, 52, 0.14); color: var(--green); }
   .header-row { display: flex; align-items: center; justify-content: center; gap: 10px; margin-top: 10px; flex-wrap: wrap; }
   .header-row .lang-switch, .header-row .badge { margin-top: 0; }
   .instruction {
-    background: rgba(212, 165, 116, 0.15);
+    background: rgba(212, 165, 116, 0.12);
     border-left: 3px solid var(--amber);
     padding: 12px 16px;
     border-radius: 6px;
     margin-bottom: 18px;
     font-size: 13px;
-    color: var(--amber-bright);
+    color: var(--amber-txt);
     line-height: 1.6;
   }
   /* 체험용 비밀번호 안내 */
   /* 체험용 비밀번호 안내 박스 — 문장이 3줄로 표시되는 크기 */
   .demo-hint {
-    background: rgba(212, 165, 116, 0.15);
+    background: rgba(212, 165, 116, 0.12);
     border: 1px solid rgba(212, 165, 116, 0.5);
     padding: 13px 18px;
     border-radius: 10px;
     margin-bottom: 16px;
     font-size: 14px;
-    color: var(--amber-bright);
+    color: #475569;
     line-height: 1.6;
     text-align: center;
   }
-  .demo-hint b { letter-spacing: 2px; font-size: 16px; }
+  .demo-hint b { letter-spacing: 2px; font-size: 16px; color: #B07C3A; }
   .loading {
     text-align: center;
     padding: 40px 20px;
     color: var(--text-muted);
   }
   .spinner {
-    border: 3px solid rgba(255,255,255,0.1);
+    border: 3px solid rgba(30,41,59,0.1);
     border-top: 3px solid var(--amber);
     border-radius: 50%;
     width: 36px;
@@ -125,15 +126,15 @@
   }
   .a-cell {
     aspect-ratio: 1;
-    background: rgba(255,255,255,0.06);
-    border: 2px solid rgba(255,255,255,0.12);
+    background: #C4E0F5;
+    border: 2px solid #A6D2F0;
     border-radius: 12px;
     display: flex;
     align-items: center;
     justify-content: center;
     font-size: 32px;
     font-weight: bold;
-    color: white;
+    color: var(--navy);
     transition: all 0.2s;
     user-select: none;
   }
@@ -162,8 +163,8 @@
     border: 2px solid var(--amber);
   }
   .a-cell.empty {
-    background: rgba(255,255,255,0.02);
-    border: 2px dashed rgba(255,255,255,0.08);
+    background: #F1F5F9;
+    border: 2px dashed #E2E8F0;
   }
   .password-display {
     background: rgba(0,0,0,0.3);
@@ -238,17 +239,17 @@
   .reshuffle-flash.fade { opacity: 0; }
   .pw-hint { font-size: 11px; color: var(--text-muted); text-align: center; margin: 2px 0 8px; }
   .pw-change { margin-top: 16px; text-align: center; }
-  .pw-toggle { color: rgba(255,255,255,0.6); font-size: 13px; text-decoration: none; border-bottom: 1px dotted rgba(255,255,255,0.35); cursor: pointer; }
-  .pw-toggle:hover { color: var(--amber-bright); }
+  .pw-toggle { color: #64748B; font-size: 13px; text-decoration: none; border-bottom: 1px dotted #94A3B8; cursor: pointer; }
+  .pw-toggle:hover { color: var(--navy); }
   .pw-panel { display: flex; gap: 8px; margin-top: 12px; }
-  .pw-panel input { flex: 1; min-width: 0; padding: 10px 12px; border: 1px solid rgba(255,255,255,0.2); border-radius: 8px; background: rgba(0,0,0,0.25); color: #fff; font-size: 16px; font-family: 'Consolas', monospace; text-align: center; letter-spacing: 4px; }
+  .pw-panel input { flex: 1; min-width: 0; padding: 10px 12px; border: 1px solid #CBD5E1; border-radius: 8px; background: #fff; color: #1F2937; font-size: 16px; font-family: 'Consolas', monospace; text-align: center; letter-spacing: 4px; }
   .btn-apply { flex: 0 0 auto; padding: 10px 18px; border: none; border-radius: 8px; background: var(--amber); color: var(--navy-dark); font-size: 14px; font-weight: bold; cursor: pointer; font-family: inherit; }
   .pw-msg { font-size: 12px; margin-top: 8px; min-height: 14px; }
-  .pw-msg.ok { color: #86EFAC; }
-  .pw-msg.ng { color: #FCA5A5; }
+  .pw-msg.ok { color: var(--green); }
+  .pw-msg.ng { color: var(--red); }
   .phone-controls { display: flex; gap: 8px; margin-top: 10px; }
   .phone-controls.top { margin-top: 14px; }
-  .btn-ctl { flex: 1; padding: 11px 8px; border: 1px solid rgba(255,255,255,0.18); border-radius: 10px; background: rgba(255,255,255,0.08); color: #fff; font-size: 13px; font-weight: bold; cursor: pointer; font-family: inherit; }
+  .btn-ctl { flex: 1; padding: 11px 8px; border: 1px solid #CBD5E1; border-radius: 10px; background: #EEF2F7; color: var(--navy); font-size: 13px; font-weight: bold; cursor: pointer; font-family: inherit; }
   .btn-ctl:active { transform: scale(.98); }
   .btn-ctl:disabled { opacity: 0.45; cursor: default; }
   .btn-ctl.primary { background: var(--amber); color: var(--navy-dark); border-color: var(--amber); }
@@ -257,7 +258,7 @@
   .pc-progress { display: flex; align-items: center; justify-content: center; gap: 10px; margin: 2px 0 12px; }
   .pc-progress .lbl { font-size: 12px; color: var(--text-muted); }
   .pc-progress .dots { display: flex; gap: 8px; }
-  .pc-progress .dots i { width: 12px; height: 12px; border-radius: 50%; background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.25); }
+  .pc-progress .dots i { width: 12px; height: 12px; border-radius: 50%; background: #D9DEE6; border: 1px solid #C3C9D2; }
   .pc-progress .dots i.on { background: var(--amber); border-color: var(--amber-bright); }
   /* '새 세션(QR 재발급)' 안내 — 맨 아래에 계속 표시 (인증 성공 배너와 동일한 바탕색) */
   .session-notice { margin-top: 14px; padding: 12px 16px; border-radius: 8px; background: var(--green-bg); color: var(--green); font-size: 13px; font-weight: bold; text-align: center; line-height: 1.5; }
@@ -266,7 +267,7 @@
     padding: 40px 20px;
     color: var(--text-muted);
   }
-  .error-screen h2 { color: white; margin-bottom: 16px; }
+  .error-screen h2 { color: var(--navy); margin-bottom: 16px; }
   .error-screen p { font-size: 14px; line-height: 1.7; }
 </style>
 </head>

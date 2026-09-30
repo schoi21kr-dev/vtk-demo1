@@ -276,7 +276,6 @@
   <div class="header">
     <div class="header-row">
       <div class="lang-switch"><button id="langKo" class="on">KO</button><button id="langEn">EN</button></div>
-      <div class="badge" id="statusBadge">CONNECTING...</div>
     </div>
   </div>
   <div id="content">
@@ -421,8 +420,6 @@ async function init() {
     // 이전 세션에 이미 등록돼 있으면 그 값을 쓰되, 기본은 1357
     if (data.registered && data.password != null) activePassword = String(data.password);
     socket.emit('join-mobile', { sid });
-    document.getElementById('statusBadge').className = 'badge live';
-    document.getElementById('statusBadge').textContent = t('statusLive');
     // 데모1 4단계: 휴대폰에서 비밀번호(기본 1357) 등록 → 서버가 PC에 user-registered 통보
     await registerPassword(activePassword);
     renderPadA();

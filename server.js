@@ -101,6 +101,11 @@ app.post('/auth/start', (req, res) => {
   });
 });
 
+// 세션이 아직 서버에 존재하는지 확인 (PC 재연결 시 QR 재발급 판단용)
+app.get('/api/session-exists/:sid', (req, res) => {
+  res.json({ exists: sessions.has(req.params.sid) });
+});
+
 // 모바일이 세션 페어링하여 π 수신
 app.get('/api/pair/:sid', (req, res) => {
   const { sid } = req.params;
@@ -208,6 +213,7 @@ app.post('/auth/reshuffle', (req, res) => {
 io.on('connection', (socket) => {
   socket.on('join-pc', ({ sid }) => {
     socket.join(`pc-${sid}`);
+    if (sid && sessions.has(sid)) sessions.get(sid).createdAt = Date.now();  // 활성 세션 만료 방지
     console.log(`[Socket] PC joined ${sid}`);
   });
   socket.on('join-mobile', ({ sid }) => {
@@ -233,13 +239,17 @@ io.on('connection', (socket) => {
   socket.on('pc-progress', ({ sid, count, len }) => {
     if (sid) io.to(`mobile-${sid}`).emit('pc-progress', { count, len });
   });
+  // PC 세션 keepalive → 열려 있는 세션이 만료되지 않도록 createdAt 갱신
+  socket.on('session-keepalive', ({ sid }) => {
+    if (sid && sessions.has(sid)) sessions.get(sid).createdAt = Date.now();
+  });
 });
 
 // 정리: 30분 이상 미사용 세션 자동 삭제
 setInterval(() => {
   const now = Date.now();
   for (const [sid, session] of sessions.entries()) {
-    if (now - session.createdAt > 30 * 60 * 1000) {
+    if (now - session.createdAt > 12 * 60 * 60 * 1000) {
       sessions.delete(sid);
       console.log(`[Cleanup] 세션 만료: ${sid}`);
     }

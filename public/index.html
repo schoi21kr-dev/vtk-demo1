@@ -821,6 +821,21 @@ async function submitAuth() {
 
 document.getElementById('langKo').onclick = () => setLanguage('ko');
 document.getElementById('langEn').onclick = () => setLanguage('en');
+
+// 서버 재시작 등으로 소켓이 끊겼다 다시 연결되면: 세션이 살아있으면 방에 재합류,
+// 사라졌으면 자동으로 새 세션·QR을 재발급 → 화면의 QR이 항상 유효하게 유지됨
+let socketConnectedOnce = false;
+socket.on('connect', () => {
+  if (!socketConnectedOnce) { socketConnectedOnce = true; return; }  // 최초 연결은 startAuth가 처리
+  if (!currentSid) { startAuth(); return; }
+  fetch('/api/session-exists/' + currentSid)
+    .then(r => r.json())
+    .then(d => { if (d && d.exists) { socket.emit('join-pc', { sid: currentSid }); } else { startAuth(); } })
+    .catch(() => { startAuth(); });
+});
+// 열려 있는 세션이 만료되지 않도록 주기적으로 keepalive 전송 (10분마다)
+setInterval(() => { if (currentSid) socket.emit('session-keepalive', { sid: currentSid }); }, 10 * 60 * 1000);
+
 applyLanguage();
 startAuth();   // 데모1 4단계: 로드 시 세션·QR 자동 생성 (등록은 휴대폰에서)
 </script>

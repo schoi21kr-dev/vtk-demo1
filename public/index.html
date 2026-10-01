@@ -417,10 +417,9 @@ const IDLE_RESET_MS = 60 * 1000;
 function startIdleReset() {
   clearTimeout(idleResetTimer);
   idleResetTimer = setTimeout(() => {
-    if (userInput.length === 0) {
-      if (currentSid) socket.emit('session-expired', { sid: currentSid });  // 기존 휴대폰에 '재스캔' 안내
-      startAuth();   // 입력이 하나도 없을 때만 새 세션 발급
-    }
+    // 입력 여부와 관계없이 스캔 후 1분 경과 시: 휴대폰에 '재스캔' 안내 + PC는 새 세션(QR)으로 복귀
+    if (currentSid) socket.emit('session-expired', { sid: currentSid });
+    startAuth();
   }, IDLE_RESET_MS);
 }
 function cancelIdleReset() { clearTimeout(idleResetTimer); idleResetTimer = null; }
@@ -738,7 +737,6 @@ function renderPadB() {
 
 function handleCellClick(idx, cellElem) {
   if (!userRegistered || userInput.length >= passwordLength) return;
-  cancelIdleReset();                               // 입력 시작 → 자동 복귀 타이머 해제
   // 눌림 표시는 CSS :active(누르는 동안)로 처리 → 떼면 사라짐 (잔상 없음)
   userInput.push(idx);
   log('logClick', 'info', { i: idx });

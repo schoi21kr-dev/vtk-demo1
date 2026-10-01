@@ -834,8 +834,10 @@ async function submitAuth() {
   }
 }
 
-document.getElementById('langKo').onclick = () => setLanguage('ko');
-document.getElementById('langEn').onclick = () => setLanguage('en');
+// KO/EN은 같은 세션의 PC·휴대폰 양쪽을 동시에 전환 (버튼 누른 쪽 언어로 동기화)
+socket.on('set-lang', ({ lang }) => setLanguage(lang));
+document.getElementById('langKo').onclick = () => { setLanguage('ko'); socket.emit('set-lang', { sid: currentSid, lang: 'ko' }); };
+document.getElementById('langEn').onclick = () => { setLanguage('en'); socket.emit('set-lang', { sid: currentSid, lang: 'en' }); };
 
 // 서버 재시작 등으로 소켓이 끊겼다 다시 연결되면: 세션이 살아있으면 방에 재합류,
 // 사라졌으면 자동으로 새 세션·QR을 재발급 → 화면의 QR이 항상 유효하게 유지됨

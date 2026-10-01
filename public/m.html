@@ -657,8 +657,10 @@ function flashMsg(text) {
   setTimeout(() => { if (el.parentNode) el.remove(); }, 2200);
 }
 
-document.getElementById('langKo').onclick = () => setLanguage('ko');
-document.getElementById('langEn').onclick = () => setLanguage('en');
+// KO/EN은 같은 세션의 PC·휴대폰 양쪽을 동시에 전환 (버튼 누른 쪽 언어로 동기화)
+socket.on('set-lang', ({ lang }) => setLanguage(lang));
+document.getElementById('langKo').onclick = () => { setLanguage('ko'); socket.emit('set-lang', { sid: sid, lang: 'ko' }); };
+document.getElementById('langEn').onclick = () => { setLanguage('en'); socket.emit('set-lang', { sid: sid, lang: 'en' }); };
 // 화면(특히 가로 보기)에서 phone-frame 전체가 뷰포트에 들어오도록 자동 축소
 function fitToScreen() {
   const f = document.querySelector('.phone-frame');

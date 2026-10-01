@@ -247,6 +247,13 @@ io.on('connection', (socket) => {
   socket.on('session-expired', ({ sid }) => {
     if (sid) io.to(`mobile-${sid}`).emit('session-expired');
   });
+  // KO/EN 언어 전환 → 같은 세션의 PC·휴대폰 양쪽에 전달 (어느 쪽에서 눌러도 동시 전환)
+  socket.on('set-lang', ({ sid, lang }) => {
+    if (sid && (lang === 'ko' || lang === 'en')) {
+      io.to(`pc-${sid}`).emit('set-lang', { lang });
+      io.to(`mobile-${sid}`).emit('set-lang', { lang });
+    }
+  });
 });
 
 // 정리: 30분 이상 미사용 세션 자동 삭제

@@ -301,6 +301,7 @@ let activePassword = DEFAULT_PASSWORD;   // 이번 세션 비밀번호 (저장�
 let pwChangeUnlocked = false;            // 인증 1회 성공 후에만 변경 허용
 let curPi = null;                        // 현재 π
 let rendered = false;                    // VNK 최초 렌더 여부
+let expiredShown = false;                // 세션 종료 안내창 표시 여부
 
 // ─────────── 다국어 사전 ───────────
 const I18N = {
@@ -396,6 +397,7 @@ function applyLanguage() {
   const sub = document.getElementById('headerSub'); if (sub) sub.textContent = t('headerSub');
   const badge = document.getElementById('statusBadge');
   if (badge && badge.classList.contains('live')) badge.textContent = t('statusLive');
+  if (expiredShown) { showError(t('expiredTitle'), t('expiredMsg')); return; }   // 안내창 상태: 언어만 바뀐 안내창 재표시
   if (rendered) renderPadA();   // 안내·라벨·위치를 현재 언어로 다시 그림
 }
 function setLanguage(lang) {
@@ -576,7 +578,7 @@ function phoneClear() {
 }
 // 서버가 중계한 PC 입력 진행상황 수신 → 진행 점·인증제출 버튼 갱신
 // PC가 1분 무입력으로 새 세션으로 돌아가면 → 이 창에 '재스캔' 안내 표시
-socket.on('session-expired', () => { showError(t('expiredTitle'), t('expiredMsg')); });
+socket.on('session-expired', () => { expiredShown = true; showError(t('expiredTitle'), t('expiredMsg')); });
 socket.on('pc-progress', ({ count, len }) => {
   pcProgress = { count: count || 0, len: len || 4 };
   applyPcProgress();

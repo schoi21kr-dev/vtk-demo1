@@ -243,6 +243,10 @@ io.on('connection', (socket) => {
   socket.on('session-keepalive', ({ sid }) => {
     if (sid && sessions.has(sid)) sessions.get(sid).createdAt = Date.now();
   });
+  // PC 자동 복귀(1분 무입력) → 기존 세션의 휴대폰에 '세션 종료, 재스캔' 안내 전달
+  socket.on('session-expired', ({ sid }) => {
+    if (sid) io.to(`mobile-${sid}`).emit('session-expired');
+  });
 });
 
 // 정리: 30분 이상 미사용 세션 자동 삭제

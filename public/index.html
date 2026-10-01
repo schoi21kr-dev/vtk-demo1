@@ -417,7 +417,10 @@ const IDLE_RESET_MS = 60 * 1000;
 function startIdleReset() {
   clearTimeout(idleResetTimer);
   idleResetTimer = setTimeout(() => {
-    if (userInput.length === 0) startAuth();   // 입력이 하나도 없을 때만 새 세션 발급
+    if (userInput.length === 0) {
+      if (currentSid) socket.emit('session-expired', { sid: currentSid });  // 기존 휴대폰에 '재스캔' 안내
+      startAuth();   // 입력이 하나도 없을 때만 새 세션 발급
+    }
   }, IDLE_RESET_MS);
 }
 function cancelIdleReset() { clearTimeout(idleResetTimer); idleResetTimer = null; }

@@ -320,6 +320,8 @@ const I18N = {
     errNoSidMsg: 'PC 화면의 QR 코드를 다시 스캔하거나, URL에 ?s=세션ID 파라미터가 포함되어 있는지 확인하세요.',
     errPair: '페어링 실패',
     errPairMsg: '세션이 만료되었거나 존재하지 않습니다.',
+    expiredTitle: '세션이 종료되었습니다',
+    expiredMsg: '이 창을 닫고 QR 코드를 다시 스캔해 주세요.',
     errConn: '연결 오류',
     pos: ['좌상단','상단','우상단','좌측','중앙','우측','좌하단','하단','우하단','','하단중앙',''],
     cellPrefix: '셀 ',
@@ -355,6 +357,8 @@ const I18N = {
     errNoSidMsg: 'Please scan the QR code on the PC screen again, or check that the URL contains the ?s=SESSION_ID parameter.',
     errPair: 'Pairing failed',
     errPairMsg: 'The session has expired or does not exist.',
+    expiredTitle: 'Session ended',
+    expiredMsg: 'Please close this window and scan the QR code again.',
     errConn: 'Connection error',
     pos: ['top-left','top','top-right','left','center','right','bottom-left','bottom','bottom-right','','bottom-center',''],
     cellPrefix: 'cell ',
@@ -571,6 +575,8 @@ function phoneClear() {
   clearSuccessBanner();
 }
 // 서버가 중계한 PC 입력 진행상황 수신 → 진행 점·인증제출 버튼 갱신
+// PC가 1분 무입력으로 새 세션으로 돌아가면 → 이 창에 '재스캔' 안내 표시
+socket.on('session-expired', () => { showError(t('expiredTitle'), t('expiredMsg')); });
 socket.on('pc-progress', ({ count, len }) => {
   pcProgress = { count: count || 0, len: len || 4 };
   applyPcProgress();

@@ -269,6 +269,18 @@
   }
   .error-screen h2 { color: var(--navy); margin-bottom: 16px; }
   .error-screen p { font-size: 14px; line-height: 1.7; }
+  /* QR 스캔 직후 '로그인 요청' 확인 화면 */
+  .login-req { padding: 6px 2px 4px; }
+  .lr-title { text-align: center; color: var(--navy); font-size: 18px; margin-bottom: 16px; letter-spacing: .5px; }
+  .lr-rows { background: rgba(0,0,0,0.03); border: 1px solid #E2E8F0; border-radius: 10px; padding: 2px 14px; margin-bottom: 14px; }
+  .lr-row { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; padding: 11px 0; border-bottom: 1px solid #EDF0F4; font-size: 14px; }
+  .lr-row:last-child { border-bottom: none; }
+  .lr-k { color: var(--text-muted); flex: 0 0 auto; }
+  .lr-v { color: #1F2937; font-weight: bold; text-align: right; word-break: break-word; }
+  .lr-warn { background: var(--red-bg); color: var(--red); border: 1px solid rgba(153,27,27,.3); border-radius: 10px; padding: 12px 14px; font-size: 13px; font-weight: bold; text-align: center; line-height: 1.5; margin-bottom: 16px; }
+  .lr-btns { display: flex; gap: 10px; }
+  .lr-btns .btn-ctl { padding: 14px 8px; font-size: 15px; }
+  .lr-cancel { background: #EEF2F7; }
 </style>
 </head>
 <body>
@@ -292,7 +304,11 @@ function getSid() {
   const params = new URLSearchParams(window.location.search);
   return params.get('s') || params.get('sid');
 }
+function getNonce() {
+  return new URLSearchParams(window.location.search).get('n') || '';
+}
 const sid = getSid();
+const nonce = getNonce();
 const socket = io();
 
 // 데모1 4단계: 등록을 휴대폰으로 이전 + 기본 비밀번호 1357 + 변경 기능
@@ -302,6 +318,9 @@ let pwChangeUnlocked = false;            // 인증 1회 성공 후에만 변경 
 let curPi = null;                        // 현재 π
 let rendered = false;                    // VNK 최초 렌더 여부
 let expiredShown = false;                // 세션 종료 안내창 표시 여부
+let confirmShown = false;                // QR 스캔 직후 확인 화면 표시 여부
+let cancelledShown = false;              // 로그인 요청 취소 안내 표시 여부
+let pairData = null;                     // /api/pair 응답(확인 화면 재렌더용)
 
 // ─────────── 다국어 사전 ───────────
 const I18N = {
@@ -323,6 +342,16 @@ const I18N = {
     errPairMsg: '세션이 만료되었거나 존재하지 않습니다.',
     expiredTitle: '세션이 종료되었습니다',
     expiredMsg: '이 창을 닫고 QR 코드를 다시 스캔해 주세요.',
+    reqTitle: 'VTK 데모 로그인 요청',
+    locLabel: '접속 위치',
+    devLabel: '접속 기기',
+    timeLabel: '요청 시각',
+    confirmWarn: '⚠ 지금 사용 중인 PC와 다르면 진행하지 마세요.',
+    btnCancelLogin: '취소',
+    btnConfirmLogin: '확인',
+    cancelledTitle: '로그인 요청을 취소했습니다',
+    cancelledMsg: '이 창을 닫으세요. PC에는 새 QR이 발급됩니다.',
+    locUnknown: '알 수 없음',
     errConn: '연결 오류',
     pos: ['좌상단','상단','우상단','좌측','중앙','우측','좌하단','하단','우하단','','하단중앙',''],
     cellPrefix: '셀 ',
@@ -360,6 +389,16 @@ const I18N = {
     errPairMsg: 'The session has expired or does not exist.',
     expiredTitle: 'Session ended',
     expiredMsg: 'Please close this window and scan the QR code again.',
+    reqTitle: 'VTK Demo login request',
+    locLabel: 'Location',
+    devLabel: 'Device',
+    timeLabel: 'Requested at',
+    confirmWarn: '⚠ If this is not the PC you are using right now, do not proceed.',
+    btnCancelLogin: 'Cancel',
+    btnConfirmLogin: 'Confirm',
+    cancelledTitle: 'Login request cancelled',
+    cancelledMsg: 'Please close this window. A new QR has been issued on the PC.',
+    locUnknown: 'Unknown',
     errConn: 'Connection error',
     pos: ['top-left','top','top-right','left','center','right','bottom-left','bottom','bottom-right','','bottom-center',''],
     cellPrefix: 'cell ',
@@ -398,6 +437,8 @@ function applyLanguage() {
   const badge = document.getElementById('statusBadge');
   if (badge && badge.classList.contains('live')) badge.textContent = t('statusLive');
   if (expiredShown) { showError(t('expiredTitle'), t('expiredMsg')); return; }   // 안내창 상태: 언어만 바뀐 안내창 재표시
+  if (confirmShown) { showConfirm(pairData && pairData.accessInfo); return; }    // 확인 화면: 현재 언어로 재표시
+  if (cancelledShown) { showCancelled(); return; }                              // 취소 안내: 현재 언어로 재표시
   if (rendered) renderPadA();   // 안내·라벨·위치를 현재 언어로 다시 그림
 }
 function setLanguage(lang) {
@@ -415,23 +456,78 @@ async function init() {
     return;
   }
   try {
-    const res = await fetch('/api/pair/' + sid);
+    const res = await fetch('/api/pair/' + sid + '?n=' + encodeURIComponent(nonce));
     if (!res.ok) {
       const err = await res.json();
       showError(t('errPair'), t('errPairMsg'));
       return;
     }
     const data = await res.json();
+    pairData = data;
     curPi = data.pi;
     // 이전 세션에 이미 등록돼 있으면 그 값을 쓰되, 기본은 1357
     if (data.registered && data.password != null) activePassword = String(data.password);
+    // 확인 화면 단계에서도 KO/EN 동기화를 받도록 방에 먼저 참여(PC 전환은 아직 안 됨)
     socket.emit('join-mobile', { sid });
-    // 데모1 4단계: 휴대폰에서 비밀번호(기본 1357) 등록 → 서버가 PC에 user-registered 통보
-    await registerPassword(activePassword);
-    renderPadA();
+    // QR 피싱(AiTM) 완화: 입력 패드 전에 먼저 '로그인 요청' 확인 화면을 보여줌
+    showConfirm(data.accessInfo);
   } catch (err) {
     showError(t('errConn'), err.message);
   }
+}
+
+// ── QR 스캔 직후 확인 화면: 접속 위치·기기·시각 + 취소/확인 ──
+function fmtReqTime(ms) {
+  if (!ms) return '—';
+  try { return new Date(ms).toLocaleString(LANG === 'ko' ? 'ko-KR' : 'en-US'); }
+  catch (e) { return new Date(ms).toLocaleString(); }
+}
+function showConfirm(info) {
+  confirmShown = true;
+  info = info || {};
+  const loc = info.location || t('locUnknown');
+  const dev = info.device || t('locUnknown');
+  const time = fmtReqTime(info.requestTimeMs);
+  document.getElementById('content').innerHTML = `
+    <div class="login-req">
+      <h2 class="lr-title">${t('reqTitle')}</h2>
+      <div class="lr-rows">
+        <div class="lr-row"><span class="lr-k">${t('locLabel')}</span><span class="lr-v">${loc}</span></div>
+        <div class="lr-row"><span class="lr-k">${t('devLabel')}</span><span class="lr-v">${dev}</span></div>
+        <div class="lr-row"><span class="lr-k">${t('timeLabel')}</span><span class="lr-v">${time}</span></div>
+      </div>
+      <div class="lr-warn">${t('confirmWarn')}</div>
+      <div class="lr-btns">
+        <button class="btn-ctl lr-cancel" id="cancelLoginBtn">${t('btnCancelLogin')}</button>
+        <button class="btn-ctl primary lr-confirm" id="confirmLoginBtn">${t('btnConfirmLogin')}</button>
+      </div>
+    </div>`;
+  const cb = document.getElementById('confirmLoginBtn'); if (cb) cb.onclick = confirmLogin;
+  const xb = document.getElementById('cancelLoginBtn'); if (xb) xb.onclick = cancelLogin;
+  setTimeout(fitToScreen, 0);
+}
+// 확인 → PC도 입력 화면으로 전환(서버가 pc-sid에 mobile-paired 중계) + 휴대폰 입력 패드 표시
+async function confirmLogin() {
+  confirmShown = false;
+  socket.emit('confirm-login', { sid });     // PC를 입력 화면으로 전환(페어링됨) 먼저
+  await registerPassword(activePassword);    // 그 다음 등록 통보 → PC 키패드 활성화
+  renderPadA();
+}
+// 취소 → PC는 새 QR 재발급(서버가 pc-sid에 renew-session 중계), 휴대폰은 취소 안내
+function cancelLogin() {
+  confirmShown = false;
+  cancelledShown = true;
+  socket.emit('cancel-login', { sid });
+  showCancelled();
+}
+function showCancelled() {
+  cancelledShown = true;
+  document.getElementById('content').innerHTML = `
+    <div class="error-screen">
+      <h2>${t('cancelledTitle')}</h2>
+      <p>${t('cancelledMsg')}</p>
+    </div>`;
+  setTimeout(fitToScreen, 0);
 }
 
 // 서버에 비밀번호 등록(재등록) — 커밋먼트만 저장, 세션과 연결

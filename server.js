@@ -22,6 +22,55 @@ const io = new Server(server, {
 
 app.use(express.static(path.join(__dirname, 'public')));
 app.use(express.json());
+app.set('trust proxy', true);   // Render 프록시 뒤에서 실제 클라이언트 IP 획득
+
+// ===== QR 피싱(AiTM) 완화: 1회용 nonce + 짧은 TTL =====
+const QR_TTL_MS = 2 * 60 * 1000;   // QR 1회용 유효시간(2분)
+
+function clientIpOf(req) {
+  const xf = (req.headers['x-forwarded-for'] || '').split(',')[0].trim();
+  return xf || (req.socket && req.socket.remoteAddress) || '';
+}
+function parseUA(ua) {
+  ua = ua || '';
+  let os = '알 수 없음';
+  if (/Windows NT 10/.test(ua)) os = 'Windows 10/11';
+  else if (/Windows/.test(ua)) os = 'Windows';
+  else if (/iPhone|iPad|iPod/.test(ua)) os = 'iOS';
+  else if (/Android/.test(ua)) os = 'Android';
+  else if (/Mac OS X|Macintosh/.test(ua)) os = 'macOS';
+  else if (/Linux/.test(ua)) os = 'Linux';
+  let br = '알 수 없음';
+  if (/Edg\//.test(ua)) br = 'Edge';
+  else if (/SamsungBrowser/.test(ua)) br = 'Samsung Internet';
+  else if (/OPR\/|Opera/.test(ua)) br = 'Opera';
+  else if (/Chrome\//.test(ua)) br = 'Chrome';
+  else if (/Firefox\//.test(ua)) br = 'Firefox';
+  else if (/Safari\//.test(ua)) br = 'Safari';
+  return os + ' · ' + br;
+}
+function geoLookup(ip) {
+  return new Promise((resolve) => {
+    if (!ip || /^(127\.|10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.|::1|fc|fd|fe80)/.test(ip)) {
+      return resolve('로컬/사설망');
+    }
+    try {
+      const r = http.get('http://ip-api.com/json/' + encodeURIComponent(ip) + '?fields=status,country,regionName,city&lang=ko', { timeout: 2500 }, (resp) => {
+        let data = '';
+        resp.on('data', c => data += c);
+        resp.on('end', () => {
+          try {
+            const j = JSON.parse(data);
+            if (j.status === 'success') resolve([j.country, j.regionName, j.city].filter(Boolean).join(' ') || '알 수 없음');
+            else resolve('알 수 없음');
+          } catch (_) { resolve('알 수 없음'); }
+        });
+      });
+      r.on('error', () => resolve('알 수 없음'));
+      r.on('timeout', () => { r.destroy(); resolve('알 수 없음'); });
+    } catch (_) { resolve('알 수 없음'); }
+  });
+}
 
 // ===== 메모리 저장소 =====
 const sessions = new Map(); // 활성 인증 세션
@@ -85,11 +134,17 @@ app.post('/auth/start', (req, res) => {
   }
   const sid = generateSessionId();
   const pi = generatePi();
+  const nonce = crypto.randomBytes(8).toString('hex');
+  const now = Date.now();
+  const accessInfo = { location: '조회 중…', device: parseUA(req.headers['user-agent']), requestTimeMs: now };
+  const geoPromise = geoLookup(clientIpOf(req)).then(loc => { accessInfo.location = loc; return loc; });
   sessions.set(sid, {
     sid, pi, userId,
     mobileConnected: false,
     status: 'waiting_for_registration',
-    createdAt: Date.now()
+    createdAt: now,
+    nonce, qrExpiresAt: now + QR_TTL_MS, qrUsed: false,
+    accessInfo, geoPromise
   });
   console.log(`[AuthStart] session=${sid} userId=${userId} (등록 대기)`);
   // PC에는 세션 ID와 모바일 페어링 URL만 반환 (π는 PC로 보내지 않음)
@@ -97,7 +152,8 @@ app.post('/auth/start', (req, res) => {
   res.json({
     sid,
     n: 4,
-    mobileUrl: `${baseUrl}/m.html?s=${sid}`
+    qrTtlMs: QR_TTL_MS,
+    mobileUrl: `${baseUrl}/m.html?s=${sid}&n=${nonce}`
   });
 });
 
@@ -106,26 +162,32 @@ app.get('/api/session-exists/:sid', (req, res) => {
   res.json({ exists: sessions.has(req.params.sid) });
 });
 
-// 모바일이 세션 페어링하여 π 수신
-app.get('/api/pair/:sid', (req, res) => {
+// 모바일이 세션 페어링하여 π 수신 (1회용 QR 검증 + 접속정보 반환, 입력은 '확인' 후)
+app.get('/api/pair/:sid', async (req, res) => {
   const { sid } = req.params;
   const session = sessions.get(sid);
   if (!session) return res.status(404).json({ error: '세션 만료 또는 없음' });
-  const user = users.get(session.userId);   // 아직 등록 전이면 null 가능
-
+  // 1회용 QR 검증: nonce 일치 + 미만료 + 미사용
+  if (session.nonce && req.query.n !== session.nonce) return res.status(403).json({ error: 'QR이 유효하지 않습니다' });
+  if (session.qrExpiresAt && Date.now() > session.qrExpiresAt) return res.status(410).json({ error: 'QR이 만료되었습니다' });
+  if (session.qrUsed) return res.status(409).json({ error: '이미 사용된 QR입니다' });
+  session.qrUsed = true;              // 1회용 소비 (재사용/피싱 방지)
   session.mobileConnected = true;
 
-  // PC에 모바일 페어링 완료 통보 (실제 등록은 이후 휴대폰에서)
-  io.to(`pc-${sid}`).emit('mobile-paired');
-  console.log(`[Pair] session=${sid} 모바일 연결됨`);
+  // 접속 위치(IP 지오) 조회가 끝날 때까지 잠깐 대기 (최대 2.5초)
+  try { await Promise.race([session.geoPromise, new Promise(r => setTimeout(r, 2500))]); } catch (_) {}
 
-  // 모바일에 π 전달 (Channel ①). 비밀번호는 등록 전이면 null
+  const user = users.get(session.userId);   // 아직 등록 전이면 null 가능
+  console.log(`[Pair] session=${sid} 모바일 스캔(확인 대기)`);
+
+  // 모바일에 π + 접속정보 전달. mobile-paired(PC 전환)는 '확인' 후 confirm-login에서 발생
   res.json({
     sid,
     pi: session.pi,
     password: user ? user.password : null, // 시연용: 비밀번호 위치 강조
     registered: !!user,
-    n: 4
+    n: 4,
+    accessInfo: session.accessInfo          // { location, device, requestTimeMs }
   });
 });
 
@@ -219,6 +281,14 @@ io.on('connection', (socket) => {
   socket.on('join-mobile', ({ sid }) => {
     socket.join(`mobile-${sid}`);
     console.log(`[Socket] Mobile joined ${sid}`);
+  });
+  // 휴대폰 '확인'(로그인 승인) → PC를 입력 화면으로 전환 (확인 후에만 전환)
+  socket.on('confirm-login', ({ sid }) => {
+    if (sid) io.to(`pc-${sid}`).emit('mobile-paired');
+  });
+  // 휴대폰 '취소' → PC에 새 QR 재발급 신호
+  socket.on('cancel-login', ({ sid }) => {
+    if (sid) io.to(`pc-${sid}`).emit('renew-session');
   });
   // 휴대폰 '새 세션(QR 재발급)' 요청 → 해당 세션의 PC에 재발급 신호
   socket.on('request-new-session', ({ sid }) => {

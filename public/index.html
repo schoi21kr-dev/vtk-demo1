@@ -112,6 +112,9 @@
     margin-bottom: 10px;
   }
   .qr-section { text-align: center; }
+  /* QR 1회용 만료 카운트다운 */
+  .qr-ttl { margin: 10px auto 2px; font-size: 14px; font-weight: bold; color: var(--amber-txt); background: rgba(212,165,116,.14); border: 1px solid rgba(212,165,116,.5); border-radius: 999px; padding: 6px 14px; display: inline-block; letter-spacing: .3px; }
+  .qr-ttl.ending { color: var(--red); background: var(--red-bg); border-color: rgba(153,27,27,.4); }
   .qr-box {
     background: white;
     padding: 20px;
@@ -359,6 +362,7 @@
           <div class="qr-box" id="qrBox">
             <div style="padding:60px 0;color:var(--text-muted)">QR 코드 로딩 중...</div>
           </div>
+          <div class="qr-ttl" id="qrTtl" style="display:none;"></div>
         </div>
       </div>
 
@@ -600,6 +604,30 @@ function setPairingStatus(key, connected) {
   if (ps) { ps.className = 'pairing-status' + (connected ? ' connected' : ''); ps.textContent = t(key); }
 }
 
+// ── QR 1회용 만료 카운트다운 (nonce+TTL, 서버 바인딩) ──
+let qrCountdownTimer = null;
+function fmtMMSS(ms){ const s=Math.max(0,Math.ceil(ms/1000)); const m=Math.floor(s/60), ss=s%60; return (m<10?'0':'')+m+':'+(ss<10?'0':'')+ss; }
+function qrTtlText(mmss){ return LANG==='en' ? ('🔒 One-time · expires in ' + mmss) : ('🔒 1회용 · ' + mmss + ' 후 만료'); }
+function stopQrCountdown(){ if(qrCountdownTimer){ clearInterval(qrCountdownTimer); qrCountdownTimer=null; } const el=document.getElementById('qrTtl'); if(el) el.style.display='none'; }
+function startQrCountdown(ttlMs){
+  stopQrCountdown();
+  const el=document.getElementById('qrTtl'); if(!el) return;
+  const deadline=Date.now()+(ttlMs||120000);
+  el.style.display='';
+  const tick=()=>{
+    const rem=deadline-Date.now();
+    el.textContent=qrTtlText(fmtMMSS(rem));
+    el.classList.toggle('ending', rem<=20000);
+    if(rem<=0){
+      stopQrCountdown();
+      if(currentSid) socket.emit('session-expired', { sid: currentSid });  // 스캔 후 확인 전 휴대폰에 안내
+      startAuth();                                                          // 새 QR 재발급
+    }
+  };
+  tick();
+  qrCountdownTimer=setInterval(tick,1000);
+}
+
 async function startAuth() {
   cancelIdleReset();                 // 새 세션 시작 시 자동 복귀 타이머 해제
   try {
@@ -642,6 +670,7 @@ async function startAuth() {
     renderStandardPad();             // 스캔 전: 일반 순서 키패드 표시
     updateInputDisplay();
     updateProgressDots();
+    startQrCountdown(data.qrTtlMs);   // QR 1회용 만료 카운트다운 시작
   } catch (err) {
     log('logError', 'warning', { v: err.message });
   }
@@ -649,6 +678,7 @@ async function startAuth() {
 
 socket.on('mobile-paired', () => {
   mobilePaired = true;
+  stopQrCountdown();                               // 확인됨 → QR 카운트다운 종료
   showStage2();                                   // QR 스캔됨 → VIK(2단계) 표시
   setPairingStatus('pairingConnected', false);   // 연결됨 · 등록 대기 (키패드는 아직 비활성)
   log('logPaired', 'success');

@@ -6,343 +6,110 @@
 <title>VTK 데모 1</title>
 <style>
   :root {
-    --navy: #1E2761;
-    --navy-dark: #0F1838;
-    --amber: #D4A574;
-    --amber-bright: #E8B97D;
-    --amber-light: #FAEEDA;
-    --amber-txt: #92400E;
-    --pc-cyan: #5DADE2;
-    --pc-cyan-dark: #1B5575;
-    --pc-cyan-light: #E1F0FA;
-    --ice: #F0F4FA;
-    --text-dark: #1F2937;
-    --text-mid: #475569;
-    --text-muted: #64748B;
-    --border: #E2E8F0;
-    --green: #166534;
-    --green-bg: #DCFCE7;
-    --red: #991B1B;
-    --red-bg: #FEE2E2;
+    --navy: #1E2761; --navy-dark: #0F1838;
+    --amber: #D4A574; --amber-bright: #E8B97D; --amber-light: #FAEEDA; --amber-txt: #92400E;
+    --blue: #5DADE2; --blue-dark: #1B5575; --blue-light: #E1F0FA;
+    --ice: #F0F4FA; --text-dark: #1F2937; --text-mid: #475569; --text-muted: #64748B;
+    --border: #E2E8F0; --green: #166534; --green-bg: #DCFCE7; --red: #991B1B; --red-bg: #FEE2E2;
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
-  body {
-    font-family: 'Malgun Gothic', 'Apple SD Gothic Neo', sans-serif;
-    background: linear-gradient(135deg, var(--ice) 0%, #ffffff 100%);
-    color: var(--text-dark);
-    min-height: 100vh;
-    padding: 20px;
-  }
-  .container { max-width: 1280px; margin: 0 auto; }
-  .header {
-    background: var(--navy);
-    color: white;
-    padding: 24px 32px;
-    border-radius: 12px;
-    max-width: 480px;
-    margin: 0 auto 24px;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    gap: 18px;
-  }
-  .header h1 { font-size: 22px; letter-spacing: 1px; }
-  .header .badge {
-    background: var(--amber);
-    color: var(--navy-dark);
-    padding: 6px 14px;
-    border-radius: 20px;
-    font-size: 13px;
-    font-weight: bold;
-    letter-spacing: 2px;
-  }
+  body { font-family: 'Malgun Gothic', 'Apple SD Gothic Neo', sans-serif; background: linear-gradient(135deg, var(--ice) 0%, #fff 100%); color: var(--text-dark); min-height: 100vh; padding: 20px; }
+  .container { max-width: 1180px; margin: 0 auto; }
+  .header { background: var(--navy); color: white; padding: 20px 28px; border-radius: 12px; max-width: 480px; margin: 0 auto 16px; display: flex; justify-content: center; align-items: center; gap: 18px; }
+  .header h1 { font-size: 20px; letter-spacing: .5px; }
+  .header .badge { background: var(--amber); color: var(--navy-dark); padding: 6px 14px; border-radius: 20px; font-size: 12px; font-weight: bold; letter-spacing: 2px; }
+  .meta { text-align: center; padding: 10px 18px; margin-bottom: 12px; font-family: 'Consolas', monospace; font-size: 13px; color: var(--text-mid); }
   .header-right { display: flex; align-items: center; gap: 14px; }
   .lang-switch { display: flex; gap: 4px; }
   .lang-switch button { padding: 5px 12px; border: 1px solid rgba(255,255,255,0.35); background: transparent; color: #fff; border-radius: 6px; font-size: 12px; font-weight: bold; cursor: pointer; font-family: inherit; letter-spacing: 1px; }
-  .lang-switch button.on { background: var(--amber); border-color: var(--amber); color: var(--navy-dark); }
-  .panel {
-    background: white;
-    border-radius: 12px;
-    padding: 28px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
-    border: 1px solid var(--border);
-    margin-bottom: 16px;
-  }
-  .panel h2 {
-    font-size: 18px;
-    color: var(--navy);
-    margin-bottom: 16px;
-    padding-bottom: 12px;
-    border-bottom: 2px solid var(--ice);
-    text-align: center;
-  }
-  .pad-note { font-size: 13px; color: var(--text-mid); line-height: 1.6; margin-bottom: 14px; }
-  .main-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 24px;
-    margin-bottom: 24px;
-    align-items: start;
-  }
-  /* 스캔 전: QR 코드 창만 가운데 표시 (VIK 창은 스캔 후 표시) */
-  .main-grid.qr-only { grid-template-columns: 1fr; max-width: 480px; margin-left: auto; margin-right: auto; }
-  .reg-area {
-    background: var(--amber-light);
-    border: 2px dashed var(--amber);
-    padding: 20px;
-    border-radius: 8px;
-    margin-bottom: 16px;
-  }
-  .reg-area label {
-    display: block;
-    color: var(--amber-txt);
-    font-weight: bold;
-    margin-bottom: 6px;
-    font-size: 14px;
-  }
-  .reg-area input {
-    width: 100%;
-    padding: 10px 14px;
-    border: 2px solid var(--amber);
-    border-radius: 6px;
-    font-size: 18px;
-    font-family: 'Consolas', monospace;
-    text-align: center;
-    letter-spacing: 4px;
-    margin-bottom: 10px;
-  }
-  .qr-section { text-align: center; }
+  .lang-switch button.on { background: var(--amber); border-color: var(--amber); color: var(--navy); }
+  .qr-panel { text-align: center; }
   /* QR 1회용 만료 카운트다운 */
   .qr-ttl { margin: 10px auto 2px; font-size: 14px; font-weight: bold; color: var(--amber-txt); background: rgba(212,165,116,.14); border: 1px solid rgba(212,165,116,.5); border-radius: 999px; padding: 6px 14px; display: inline-block; letter-spacing: .3px; }
   .qr-ttl.ending { color: var(--red); background: var(--red-bg); border-color: rgba(153,27,27,.4); }
-  .qr-box {
-    background: white;
-    padding: 20px;
-    border: 2px solid var(--border);
-    border-radius: 12px;
-    display: block;
-    width: fit-content;
-    max-width: 100%;
-    margin: 12px auto;
-    box-sizing: border-box;
-  }
-  .qr-box img {
-    display: block;
-    max-width: 100%;
-    width: auto;
-    height: auto;
-    border-radius: 8px;
-    margin: 0 auto;
-  }
-  .qr-instruction {
-    background: var(--amber-light);
-    border-left: 4px solid var(--amber);
-    padding: 14px 18px;
-    border-radius: 6px;
-    margin-top: 16px;
-    text-align: left;
-    font-size: 14px;
-    line-height: 1.7;
-    color: var(--amber-txt);
-  }
-  .mobile-url-display {
-    background: var(--ice);
-    padding: 10px 14px;
-    border-radius: 6px;
-    margin-top: 12px;
-    font-family: 'Consolas', monospace;
-    font-size: 12px;
-    color: var(--navy-dark);
-    word-break: break-all;
-    text-align: left;
-  }
-  .pad-b {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 12px;
-    max-width: 320px;            /* 데모2와 동일 크기, 정사각 셀 */
-    margin: 8px auto;
-  }
-  .b-cell {
-    aspect-ratio: 1;
-    background: #C4E0F5;
-    border: 2px solid #A6D2F0;
-    border-radius: 12px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    transition: all 0.15s;
-    font-size: 24px;
-    color: var(--pc-cyan-dark);
-    user-select: none;
-    font-weight: bold;
-  }
-  /* hover: 아무 강조 없음 (테두리·채움 모두 변화 없이 잔상 제거) */
-  /* 누르는 동안에만 '눌림' 표시 → 손을 떼면 즉시 사라짐 */
-  /* 누르는 순간만 살짝 반응 (색 반전 없음 · 데모2 휴대폰 VIK와 동일) */
-  .b-cell.pressing {
-    transform: scale(0.94);
-  }
-  .b-cell.empty {
-    background: #f8f8f8;
-    border: 2px dashed #d0d0d0;
-    cursor: default;
-  }
-  .pad-b.disabled .b-cell { pointer-events: none; opacity: 0.5; }
-  .input-display {
-    background: var(--ice);
-    padding: 14px 18px;
-    border-radius: 8px;
-    margin: 16px 0;
-    font-family: 'Consolas', monospace;
-    font-size: 14px;
-    color: var(--navy-dark);
-    min-height: 48px;
-    display: flex;
-    align-items: center;
-  }
-  .progress {
-    display: flex;
-    gap: 8px;
-    justify-content: center;
-    margin: 12px 0;
-  }
-  .dot {
-    width: 14px;
-    height: 14px;
-    border-radius: 50%;
-    background: var(--border);
-    transition: background 0.2s;
-  }
-  .dot.filled { background: var(--navy); }
-  .controls {
-    display: flex;
-    gap: 12px;
-    margin-top: 16px;
-  }
-  .btn {
-    flex: 1;
-    padding: 14px 20px;
-    border: none;
-    border-radius: 8px;
-    font-size: 15px;
-    font-weight: bold;
-    cursor: pointer;
-    transition: all 0.2s;
-    font-family: inherit;
-  }
-  .btn-primary { background: var(--navy); color: white; }
-  .btn-primary:hover { background: var(--navy-dark); }
-  .btn-secondary { background: var(--border); color: var(--text-dark); }
-  .btn-secondary:hover { background: var(--text-muted); color: white; }
-  .btn:disabled { opacity: 0.5; cursor: not-allowed; }
-  .result {
-    margin-top: 16px;
-    padding: 16px 20px;
-    border-radius: 8px;
-    font-weight: bold;
-    text-align: center;
-    font-size: 15px;
-  }
-  .result.success { background: var(--green-bg); color: var(--green); }
-  .result.failure { background: var(--red-bg); color: var(--red); }
-  .pairing-status {
-    background: var(--ice);
-    padding: 14px 18px;
-    border-radius: 8px;
-    margin-bottom: 16px;
-    font-size: 14px;
-    color: var(--text-mid);
-  }
-  .pairing-status.connected { background: var(--green-bg); color: var(--green); font-weight: bold; }
-  .log-panel {
-    background: var(--navy-dark);
-    color: var(--amber-bright);
-    padding: 20px;
-    border-radius: 12px;
-    font-family: 'Consolas', monospace;
-    font-size: 12px;
-    max-height: 220px;
-    overflow-y: auto;
-    margin-bottom: 24px;
-  }
-  .log-panel h3 {
-    color: var(--amber);
-    font-size: 13px;
-    margin-bottom: 12px;
-    letter-spacing: 2px;
-  }
-  .log-line { margin: 4px 0; line-height: 1.5; }
-  .log-time { color: var(--text-muted); }
-  .session-info {
-    background: var(--ice);
-    padding: 12px 16px;
-    border-radius: 8px;
-    font-family: 'Consolas', monospace;
-    font-size: 12px;
-    color: var(--text-mid);
-    max-width: 480px;
-    margin: 0 auto 16px;
-    text-align: center;
-    word-break: break-all;
-  }
-  .session-info .label {
-    display: inline-block;
-    color: var(--navy);
-    font-weight: bold;
-    margin-right: 8px;
-  }
-  .footer {
-    text-align: center;
-    color: var(--text-muted);
-    font-size: 12px;
-    padding: 16px;
-    margin-top: 24px;
-  }
-  @media (max-width: 900px) {
-    .main-grid { grid-template-columns: 1fr; }
-  }
-  /* 휴대폰 세로: 헤더·여백 축소, QR은 폭에 맞춰 자동 축소 */
+  .qr-panel .alt-url { display: none; max-width: 480px; margin: 14px auto 0; }
+  .meta b { color: var(--navy); }
+  .panel { background: #fff; border-radius: 12px; padding: 24px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); border: 1px solid var(--border); }
+  .panel h2 { font-size: 17px; color: var(--navy); margin-bottom: 16px; padding-bottom: 12px; border-bottom: 2px solid var(--ice); text-align: center; }
+  /* 2단계 제목 패널: 밑줄 없이 글자 높이에 맞춘 크기 */
+  .panel.title-only { padding: 12px 18px; }
+  .panel.title-only h2 { margin-bottom: 0; padding-bottom: 0; border-bottom: none; }
+  .reg-area { background: var(--amber-light); border: 2px dashed var(--amber); padding: 18px; border-radius: 8px; margin-bottom: 16px; display: flex; gap: 14px; align-items: flex-end; flex-wrap: wrap; }
+  .reg-field { flex: 1; min-width: 160px; }
+  .reg-area label { display: block; color: var(--amber-txt); font-weight: bold; margin-bottom: 6px; font-size: 13px; }
+  .reg-area input { width: 100%; padding: 10px 14px; border: 2px solid var(--amber); border-radius: 6px; font-size: 16px; font-family: 'Consolas', monospace; text-align: center; letter-spacing: 4px; }
+  .btn { border: none; border-radius: 8px; font-size: 14px; font-weight: bold; cursor: pointer; font-family: inherit; padding: 12px 20px; }
+  .btn-amber { background: var(--amber); color: var(--navy-dark); }
+  .btn-navy { background: var(--navy); color: #fff; }
+  .btn-block { width: 100%; margin-top: 16px; }
+  .btn:disabled { opacity: .5; cursor: default; }
+  .main-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; align-items: start; }
+  /* 스캔 전: QR 코드 창만 가운데 표시 (VNK 창은 스캔 후 표시) */
+  .main-grid.qr-only { grid-template-columns: 1fr; max-width: 480px; margin-left: auto; margin-right: auto; }
+  .qr-section { text-align: center; }
+  .qr-box { background: #fff; padding: 20px; border: 2px solid var(--border); border-radius: 14px; display: block; width: fit-content; max-width: 100%; margin: 8px auto; box-sizing: border-box; }
+  .qr-box img { display: block; max-width: 100%; width: auto; height: auto; margin: 0 auto; }
+  .qr-wait { color: var(--text-muted); padding: 80px 20px; }
+  .alt-url { display: none; background: var(--ice); border: 1px solid var(--border); border-radius: 6px; padding: 10px 12px; margin-top: 10px; font-family: 'Consolas', monospace; font-size: 11px; color: var(--text-muted); word-break: break-all; text-align: left; }
+  /* 등록 및 인증 순서 안내 */
+  .steps-title { font-size: 18px; font-weight: bold; color: var(--navy); margin-bottom: 18px; }
+  .steps-list { list-style: decimal; padding-left: 24px; color: var(--text-dark); font-size: 15px; line-height: 1.6; }
+  .steps-list li { padding-left: 6px; margin-bottom: 16px; }
+  /* 2단계 인증 안내 */
+  .pad-note { font-size: 13px; color: var(--text-mid); text-align: center; line-height: 1.6; margin-bottom: 10px; }
+  /* 체험용 비밀번호 안내 */
+  .demo-hint { font-size: 13px; text-align: center; line-height: 1.6; margin: 0 auto 16px; max-width: 420px; padding: 9px 14px; border-radius: 8px; background: rgba(212,165,116,.12); border: 1px solid rgba(212,165,116,.45); color: var(--text-mid); }
+  .demo-hint b { color: var(--amber, #B07C3A); letter-spacing: 2px; }
+  .pad-b { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; max-width: 320px; margin: 0 auto; }
+  .b-cell { aspect-ratio: 1; background: #C4E0F5; border: 2px solid #A6D2F0; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 30px; font-weight: bold; color: var(--blue-dark); }
+  .b-cell.empty { background: #F8FAFC; border: 2px dashed var(--border); }
+  .pad-wait { text-align: center; color: var(--text-muted); padding: 60px 20px; }
+  .result-banner { margin-top: 16px; padding: 14px 18px; border-radius: 8px; text-align: center; font-weight: bold; font-size: 15px; }
+  .result-banner.success { background: var(--green-bg); color: var(--green); }
+  .result-banner.failure { background: var(--red-bg); color: var(--red); }
+  .log-panel { background: var(--navy-dark); border-radius: 12px; padding: 18px 20px; margin-top: 4px; }
+  .log-title { color: var(--amber-bright); font-size: 13px; font-weight: bold; letter-spacing: 1px; margin-bottom: 10px; font-family: 'Consolas', monospace; }
+  .log-box { font-family: 'Consolas', monospace; font-size: 12px; line-height: 1.9; max-height: 200px; overflow-y: auto; }
+  .log-line { color: #94A3B8; }
+  .log-line .t { color: #64748B; }
+  .log-line.success { color: #86EFAC; }
+  .log-line.info { color: #93C5FD; }
+  .log-line.system { color: #C4B5FD; }
+  .log-line.warning { color: #FCD34D; }
+  @media (max-width: 720px) { .main-grid { grid-template-columns: 1fr; } }
+  /* 휴대폰 세로: 헤더·여백 축소 */
   @media (max-width: 600px) {
     body { padding: 10px; }
-    .header { flex-direction: row; align-items: center; justify-content: center; gap: 12px; padding: 14px 16px; margin-bottom: 16px; }
-    .header h1 { font-size: 16px; letter-spacing: 0.5px; }
+    .header { flex-direction: row; align-items: center; justify-content: center; gap: 12px; padding: 14px 16px; }
+    .header h1 { font-size: 16px; }
     .header-right { justify-content: center; gap: 8px; }
     .header .badge { font-size: 11px; padding: 5px 10px; letter-spacing: 1px; }
     .panel { padding: 16px; }
     .panel h2 { font-size: 16px; }
     .qr-box { padding: 12px; }
-    .session-info { font-size: 11px; }
-    .pad-note { font-size: 12px; }
-    .pad-b { max-width: 300px; margin: 12px auto; }
-    .pad-b .b-cell { font-size: 20px; }
+    .pad-b { max-width: 280px; }
+    .b-cell { font-size: 24px; }
+    .meta { font-size: 11px; }
   }
-  /* 휴대폰 가로(낮은 높이): 세로 공간 확보 + QR 높이 제한 + 푸터 숨김 */
+  /* 휴대폰 가로(낮은 높이): 세로 공간 확보 + QR·VNK 키패드 높이 제한 */
   @media (max-height: 520px) {
     body { padding: 8px; }
     .header { padding: 6px 14px; margin-bottom: 8px; }
     .header h1 { font-size: 15px; }
-    .session-info { margin-bottom: 6px; padding: 5px 12px; }
+    .meta { padding: 4px 12px; margin-bottom: 6px; }
     .panel { padding: 10px; }
     .panel h2 { margin-bottom: 6px; padding-bottom: 6px; font-size: 15px; }
     .qr-box { margin: 4px auto; padding: 8px; }
-    .qr-box img { max-height: 52vh; }
-    .footer { display: none; }
-    /* stage2(VIK 키패드) 가로 모드 압축 */
+    .qr-box img { max-height: 58vh; }
     .pad-note { display: none; }
-    .progress { margin: 5px 0; }
-    .pad-b { max-width: 33vh; margin: 5px auto; gap: 6px; }
-    .pad-b .b-cell { font-size: 14px; }
-    .controls { margin-top: 6px; gap: 8px; }
-    .controls .btn { padding: 8px; font-size: 13px; }
-    #resultArea .result { padding: 8px 12px; font-size: 13px; }
+    .pad-b { max-width: 42vh; gap: 6px; }
+    .b-cell { font-size: 15px; }
+    #resultBanner .result-banner { padding: 8px 12px; font-size: 13px; }
   }
 </style>
 </head>
 <body>
 <div class="container">
-
   <div class="header">
     <h1 data-i18n="appTitle">VTK 데모 1</h1>
     <div class="header-right">
@@ -350,191 +117,108 @@
     </div>
   </div>
 
-  <!-- 데모1 4단계: 등록을 휴대폰으로 이전 — PC엔 등록 패널 없음, 로드 시 세션·QR 자동 생성 -->
-  <div id="authPanel">
-
-    <!-- 스캔 전: QR 코드 창만 표시 / 스캔 후: VIK 창만 가운데 표시 -->
-    <div class="main-grid qr-only" id="mainGrid">
-      <!-- QR 스캔 (스캔 전 표시) -->
-      <div id="stage1">
-        <div class="panel qr-section">
-          <h2 data-i18n="qrHeading">① 휴대폰으로 QR 코드 스캔</h2>
-          <div class="qr-box" id="qrBox">
-            <div style="padding:60px 0;color:var(--text-muted)">QR 코드 로딩 중...</div>
-          </div>
-          <div class="qr-ttl" id="qrTtl" style="display:none;"></div>
-        </div>
-      </div>
-
-      <!-- VIK 입력 (스캔 후 표시) -->
-      <div id="stage2" style="display:none;">
-        <div class="panel">
-          <h2 data-i18n="padHeading">② VIK · 무표시 (PC)</h2>
-          <div class="pad-b" id="padB"></div>
-        </div>
-        <div id="resultArea" style="margin-top:16px;"></div>
+  <!-- 스캔 전: QR 코드 창만 표시 / 스캔 후: 좌 QR · 우 VNK 나란히 -->
+  <div class="main-grid qr-only" id="mainGrid">
+    <!-- QR 스캔 (스캔 후에도 계속 표시) -->
+    <div id="stage1">
+      <div class="panel qr-panel">
+        <h2 data-i18n="qrHeading">&#9312; 휴대폰으로 QR 코드 스캔</h2>
+        <div class="qr-box" id="qrBox"><div class="qr-wait" data-i18n="qrLoading">QR 코드 로딩 중…</div></div>
+        <div class="qr-ttl" id="qrTtl" style="display:none;"></div>
       </div>
     </div>
 
+    <!-- VNK 숫자표시 (스캔 후 표시) -->
+    <div id="stage2" style="display:none;">
+      <div class="panel">
+        <h2 data-i18n="padBHeading">&#9313; VNK &middot; 숫자표시 (PC)</h2>
+        <div id="padArea"><div class="pad-wait" data-i18n-html="padWait">인증 세션을 시작하면<br>VNK가 표시됩니다.</div></div>
+      </div>
+      <div id="resultBanner" style="margin-top:16px;"></div>
+      <!-- 로그(logBox)는 화면에서 제거됨. JS 오류 방지용 숨김 노드만 유지 -->
+      <div id="logBox" style="display:none;"></div>
+    </div>
   </div>
-
-  <div class="footer">
-    <span data-i18n="footer1">VTK Multi-Device Demo · Live Server with Socket.IO</span><br>
-    <span data-i18n="footer2">옵틱라이트 주식회사 · PG502 검토용 시연 · 2026</span>
-  </div>
-
 </div>
 
 <script src="/socket.io/socket.io.js"></script>
 <script>
 const socket = io();
-
-let currentUser = 'demo-user';    // 데모1 4단계: 사용자 ID 고정 (등록·비밀번호는 휴대폰에서)
 let currentSid = null;
-let userInput = [];
-let mobilePaired = false;
-let userRegistered = false;        // 휴대폰 등록 완료 여부 (키패드 활성화 조건)
-let pairingStatusKey = 'pairingWait';
-let pairingConnectedFlag = false;
-let stage2Shown = false;           // QR 스캔 후 VIK(2단계) 표시 여부
-const passwordLength = 4;
+let sessionUserId = null;
+let stage2Shown = false;
+const NUMERIC_INDICES = [0, 1, 2, 3, 4, 5, 6, 7, 8, 10]; // 9·11은 빈 셀
+const STD_PI = [9, 0, 1, 2, 3, 4, 5, 6, 7, 8]; // 일반 순서 키패드(1·2·3/4·5·6/7·8·9/0)
+let currentPi = null;   // 서버가 발급한 실제 π (스캔 시 VTK 배치로 전환)
 
-// 처음엔 QR 창만, 스캔되면 QR 창을 없애고 VIK 창만 가운데 표시
-function showStage1() {
-  stage2Shown = false;
-  const s1 = document.getElementById('stage1'), s2 = document.getElementById('stage2'), g = document.getElementById('mainGrid');
-  if (g) g.classList.add('qr-only');       // 스캔 전: QR 창만
-  if (s1) s1.style.display = '';
-  if (s2) s2.style.display = 'none';
-}
-function showStage2() {
-  stage2Shown = true;
-  const s1 = document.getElementById('stage1'), s2 = document.getElementById('stage2');
-  if (s1) s1.style.display = 'none';       // 스캔 후: QR 창 제거
-  if (s2) s2.style.display = '';
-  startIdleReset();                        // 스캔 후 1분간 입력 없으면 새 세션으로 복귀
-}
 
-// QR 스캔 후 비밀번호 입력이 없는 상태가 1분 지속되면 자동으로 새 세션(QR)으로 되돌림
-let idleResetTimer = null;
-const IDLE_RESET_MS = 60 * 1000;
-function startIdleReset() {
-  clearTimeout(idleResetTimer);
-  idleResetTimer = setTimeout(() => {
-    // 입력 여부와 관계없이 스캔 후 1분 경과 시: 휴대폰에 '재스캔' 안내 + PC는 새 세션(QR)으로 복귀
-    if (currentSid) socket.emit('session-expired', { sid: currentSid });
-    startAuth();
-  }, IDLE_RESET_MS);
-}
-function cancelIdleReset() { clearTimeout(idleResetTimer); idleResetTimer = null; }
-
-// ─────────── 다국어 사전 ───────────
+// ─────────── 다국어 사전 (화면 문구는 모두 여기서 관리) ───────────
 const I18N = {
   ko: {
     appTitle: 'VTK 데모 1',
-    regTitle: '1단계 · 사용자 등록 및 인증',
-    labelUserId: '사용자 ID',
-    labelPassword: '시연용 4자리 비밀번호 (예: 7259)',
-    btnRegister: '등록 완료 → 인증 시작',
-    sessionLabel: 'SESSION:', userLabel: 'USER:',
-    qrHeading: '① 휴대폰으로 QR 코드 스캔',
-    qrGuide: '<strong>📱 안내</strong><br>1. 휴대폰 카메라 앱을 여세요<br>2. 위 QR 코드를 비추세요<br>3. 표시되는 링크를 탭하세요<br>4. 휴대폰에 VNK(숫자표시)가 나타납니다',
-    altUrlLabel: '대체 URL (QR 스캔 안 될 경우):',
-    padHeading: '② VIK · 무표시 (PC)',
-    padNote: '휴대폰의 VNK(숫자표시)에서 비밀번호 4자리의 <b>위치</b>를 확인한 뒤, 아래 VIK에서 같은 위치를 클릭하세요.',
-    btnReset: '↺ 다시 입력', btnSubmit: '인증 제출', btnNewChallenge: '🔄 새 세션 (QR 재발급)', btnReshuffle: '🎲 VNK 재배치 (새 π)',
-    ctlMovedNote: '‘다시 입력’·‘인증 제출’은 휴대폰에서 조작합니다.',
-    logTitle: '┃ MESSAGE FLOW LOG (실시간 서버 통신) ┃',
-    footer1: 'VTK Multi-Device Demo · Live Server with Socket.IO',
-    footer2: '옵틱라이트 주식회사 · PG502 검토용 시연 · 2026',
-    pairingWait: '🔄 휴대폰 대기 중… QR을 스캔하면 휴대폰에서 비밀번호가 등록됩니다',
-    pairingConnected: '📱 휴대폰 연결됨 · 비밀번호 등록 대기 중…',
-    pairingRegistered: '✓ 등록 완료 (비밀번호는 휴대폰에서 관리) · π는 휴대폰에만 전송 (PC는 π 모름)',
-    pairingDone: '✓ 휴대폰 페어링 완료 · π는 휴대폰(VNK)에만 전송됨 (PC는 π를 알지 못함)',
-    seqWaitPair: '좌표 시퀀스 C: (휴대폰 페어링 대기 중)',
-    seqWaitInput: '좌표 시퀀스 C: (대기 중…)',
-    seqPrefix: '좌표 시퀀스 C: ',
-    seqReshuffled: '좌표 시퀀스 C: 새 배치로 재배치됨 — 휴대폰(VNK)에서 새 위치 확인 후 클릭',
-    qrFailed: 'QR 생성 실패',
-    resultSuccess: '✓ 인증 성공',
-    resultFailure: '✗ 인증 실패 — 좌표를 다시 확인하세요',
-    alertRegInput: '사용자 ID와 4자리 숫자 비밀번호를 입력하세요',
-    alertRegFail: '등록 실패: ', alertStartFail: '인증 시작 실패: ', alertConnFail: '서버 연결 실패: ',
-    logRegistered: '휴대폰에서 비밀번호 등록 완료 — 서버에 커밋먼트만 저장 (평문 D 폐기)',
-    logSessionHead: '━━━ 새 인증 세션 시작 ━━━',
-    logSessionId: '세션 ID: {v}',
-    logNewPi: 'Server: 새 π 생성 (Channel ①로 휴대폰에만 전달 예정)',
+    stage1Title: '1단계',
+    qrHeading: '\u2460 휴대폰으로 QR 코드 스캔',
+    qrLoading: 'QR 코드 로딩 중…',
+    qrFailed: 'QR 생성 실패 — 잠시 후 다시 시도하세요.',
+    stage2Title: '2단계',
+    padBHeading: '\u2461 VNK · 숫자표시 (PC)',
+    padNote: '아래 가상 숫자키패드에서 비밀번호 4자리의 <b>위치</b>를 확인 후 휴대폰의 가상 입력키패드에서 비밀번호 위치를 터치하세요.',
+    demoHint: '체험용 비밀번호는 <b>1357</b>입니다. 아래에서 1·3·5·7의 위치를 찾아 휴대폰에서 같은 자리를 순서대로 누르세요.',
+    padWait: '인증 세션을 시작하면<br>VNK가 표시됩니다.',
+    logTitle: '\u258E MESSAGE FLOW LOG (실시간 서버 통신)',
+    userPending: '(휴대폰에서 입력)',
+    logReady: 'PC 클라이언트 준비됨.',
+    logSessionHead: '━━━ 인증 세션 준비 ━━━',
+    logSessionId: '세션 ID: ',
+    logNewPi: 'Server: 새 π 생성 → VNK 배치 확정',
     logPcJoin: 'Socket.IO: PC join',
-    logPaired: 'Socket.IO: 휴대폰 페어링 완료 신호 수신',
-    logChan1: 'Channel ①: Server → 휴대폰에 π 전송됨',
-    logChan2: 'Channel ②: Server → PC에 빈 VIK (π는 PC로 전송 안 됨)',
-    logClick: '사용자: VIK 좌표 [{i}] 클릭',
-    logSeqDone: '좌표 시퀀스 C 입력 완료 → 인증 제출 대기',
-    logReset: '입력 초기화',
-    logSend: 'Channel ② → Server: 좌표 시퀀스 C = ({c}) 전송',
-    logCompute: 'Server: D\u2032 = \u03c0\u207b\u00b9(C) 계산 → "{d}"',
-    logCompare: 'Server: H(D\u2032 \u2225 salt) 비교',
-    logMatch: '✓ 커밋먼트 일치 → 인증 성공',
-    logDiscard: 'Server: \u03c0, D\u2032 메모리에서 즉시 폐기',
-    logAutoReshuffle: 'Server: 인증 성공 → 사용한 π 폐기, 새 π로 자동 재배치 (휴대폰 VNK에만 전송 · PC는 π 모름)',
-    logManualReshuffle: 'Server: 수동 재배치 → 새 π 생성 후 휴대폰(VNK)만 갱신',
-    logFail: '✗ 인증 실패',
-    logError: '오류: {v}',
+    logSessionFail: '세션 시작 실패: ',
+    logSessionError: '세션 시작 오류: ',
+    logPaired: 'Socket.IO: 모바일 페어링 완료 신호 수신',
+    logChannel2: 'Channel \u2461: 입력 좌표는 휴대폰에서만 수집됨',
+    logRegistered: '등록 완료 — 서버에 등록 참조정보(해시)만 저장 (평문 D 폐기)',
+    logAutoReshuffle: '인증 완료 → 사용한 VNK 폐기, 새 π로 자동 재배치',
+    logManualReshuffle: '휴대폰 요청: 새 π 수신 → VNK 숫자 재배치',
+    logResult: '인증 결과 수신: ',
+    resultOkWord: '성공', resultNgWord: '실패',
+    bannerSuccess: '✓ 인증 성공',
+    bannerFailure: '✗ 인증 실패 — 다시 시도하세요',
     locale: 'ko-KR'
   },
   en: {
     appTitle: 'VTK Demo 1',
-    regTitle: 'Step 1 · User Registration & Authentication',
-    labelUserId: 'User ID',
-    labelPassword: '4-digit demo password (e.g. 7259)',
-    btnRegister: 'Register → Start authentication',
-    sessionLabel: 'SESSION:', userLabel: 'USER:',
-    qrHeading: '① Scan the QR code with your phone',
-    qrGuide: '<strong>📱 Guide</strong><br>1. Open the camera app on your phone<br>2. Point it at the QR code above<br>3. Tap the link that appears<br>4. The VNK (numbered keypad) appears on your phone',
-    altUrlLabel: 'Alternate URL (if the QR code cannot be scanned):',
-    padHeading: '② VIK · Blank (PC)',
-    padNote: 'Find the <b>positions</b> of your 4-digit password on the VNK (numbered) on your phone, then click the same positions on the VIK below.',
-    btnReset: '↺ Clear', btnSubmit: 'Submit', btnNewChallenge: '🔄 New session (reissue QR)', btnReshuffle: '🎲 Reshuffle VNK (new π)',
-    ctlMovedNote: '‘Clear’ and ‘Submit’ are now operated from your phone.',
-    logTitle: '┃ MESSAGE FLOW LOG (live server communication) ┃',
-    footer1: 'VTK Multi-Device Demo · Live Server with Socket.IO',
-    footer2: 'Optic Light Co., Ltd. · PG502 review demonstration · 2026',
-    pairingWait: '🔄 Waiting for phone… scan the QR to register your password on the phone',
-    pairingConnected: '📱 Phone connected · waiting for password registration…',
-    pairingRegistered: '✓ Registered (password managed on the phone) · π is sent only to the phone (PC never sees π)',
-    pairingDone: '✓ Phone paired · π is sent only to the phone (VNK); the PC never sees π',
-    seqWaitPair: 'Coordinate sequence C: (waiting for phone pairing)',
-    seqWaitInput: 'Coordinate sequence C: (waiting…)',
-    seqPrefix: 'Coordinate sequence C: ',
-    seqReshuffled: 'Coordinate sequence C: reshuffled to a new layout — check the new positions on the phone (VNK), then click',
-    qrFailed: 'QR generation failed',
-    resultSuccess: '✓ Authentication successful',
-    resultFailure: '✗ Authentication failed — please check the positions again',
-    alertRegInput: 'Enter a user ID and a 4-digit numeric password',
-    alertRegFail: 'Registration failed: ', alertStartFail: 'Failed to start authentication: ', alertConnFail: 'Server connection failed: ',
-    logRegistered: 'Password registered from the phone — only the commitment is stored (plaintext D discarded)',
-    logSessionHead: '━━━ New authentication session started ━━━',
-    logSessionId: 'Session ID: {v}',
-    logNewPi: 'Server: new π generated (to be sent only to the phone via Channel ①)',
+    stage1Title: 'Step 1',
+    qrHeading: '\u2460 Scan the QR Code with Your Phone',
+    qrLoading: 'Loading QR code…',
+    qrFailed: 'QR generation failed — please try again shortly.',
+    stage2Title: 'Step 2',
+    padBHeading: '\u2461 VNK · Numbered (PC)',
+    padNote: 'Find the <b>positions</b> of your 4-digit password on the virtual numeric keypad below, then touch those positions on the virtual input keypad on your phone.',
+    demoHint: 'The demo password is <b>1357</b>. Find where 1, 3, 5 and 7 are below, then tap those same positions on your phone in order.',
+    padWait: 'The VNK will appear<br>once the authentication session starts.',
+    logTitle: '\u258E MESSAGE FLOW LOG (live server communication)',
+    userPending: '(entered on phone)',
+    logReady: 'PC client ready.',
+    logSessionHead: '━━━ Authentication session ready ━━━',
+    logSessionId: 'Session ID: ',
+    logNewPi: 'Server: new π generated → VNK layout fixed',
     logPcJoin: 'Socket.IO: PC join',
-    logPaired: 'Socket.IO: phone pairing signal received',
-    logChan1: 'Channel ①: Server → π sent to the phone',
-    logChan2: 'Channel ②: Server → empty VIK to the PC (π is not sent to the PC)',
-    logClick: 'User: VIK coordinate [{i}] clicked',
-    logSeqDone: 'Coordinate sequence C complete → awaiting submission',
-    logReset: 'Input cleared',
-    logSend: 'Channel ② → Server: coordinate sequence C = ({c}) sent',
-    logCompute: 'Server: D\u2032 = \u03c0\u207b\u00b9(C) computed → "{d}"',
-    logCompare: 'Server: comparing H(D\u2032 \u2225 salt)',
-    logMatch: '✓ Commitment matched → authentication successful',
-    logDiscard: 'Server: π and D\u2032 immediately discarded from memory',
-    logAutoReshuffle: 'Server: authentication successful → used π discarded, auto-reshuffled with a new π (sent only to the phone VNK; the PC never sees π)',
-    logManualReshuffle: 'Server: manual reshuffle → new π generated, only the phone (VNK) updated',
-    logFail: '✗ Authentication failed',
-    logError: 'Error: {v}',
+    logSessionFail: 'Failed to start session: ',
+    logSessionError: 'Session start error: ',
+    logPaired: 'Socket.IO: mobile pairing signal received',
+    logChannel2: 'Channel \u2461: input coordinates are collected on the phone only',
+    logRegistered: 'Registration complete — only the reference value (hash) is stored; plaintext D discarded',
+    logAutoReshuffle: 'Authentication complete → used VNK discarded, reshuffled with a new π',
+    logManualReshuffle: 'Phone request: new π received → VNK renumbered',
+    logResult: 'Authentication result received: ',
+    resultOkWord: 'success', resultNgWord: 'failure',
+    bannerSuccess: '✓ Authentication successful',
+    bannerFailure: '✗ Authentication failed — please try again',
     locale: 'en-US'
   }
 };
+
+// 언어 결정: ?lang= 우선, 없으면 브라우저 언어(한국어면 ko, 그 외 en)
 let LANG = (function () {
   const q = new URLSearchParams(location.search).get('lang');
   if (q === 'ko' || q === 'en') return q;
@@ -542,36 +226,8 @@ let LANG = (function () {
 })();
 function t(key) { return (I18N[LANG] && I18N[LANG][key] !== undefined) ? I18N[LANG][key] : I18N.ko[key]; }
 
-// 로그: 키(+치환값)와 시각을 저장해 언어 전환 시 다시 그림
+// 로그는 키로 보관 → 언어 전환 시 그대로 다시 그림
 const logEntries = [];
-function fmt(str, vars) {
-  if (!vars) return str;
-  return str.replace(/\{(\w+)\}/g, (m, k) => (vars[k] !== undefined ? vars[k] : m));
-}
-function log(key, type = 'info', vars = null) {
-  logEntries.push({ key, type, vars, time: new Date().toLocaleTimeString(t('locale')) });
-  renderLog();
-}
-function renderLog() {
-  const area = document.getElementById('logArea');
-  if (!area) return;
-  const colors = { info: '#E8B97D', success: '#86EFAC', warning: '#FCA5A5', system: '#94A3B8' };
-  area.innerHTML = logEntries.map(e => {
-    const raw = (I18N[LANG][e.key] !== undefined) ? t(e.key) : e.key;
-    const text = fmt(raw, e.vars);
-    return `<div class="log-line"><span class="log-time">[${e.time}]</span> <span style="color:${colors[e.type]}">${text}</span></div>`;
-  }).join('');
-  area.scrollTop = area.scrollHeight;
-}
-
-let lastAuthSuccess = null;   // 결과 배너 상태(언어 전환 대비)
-function renderResult() {
-  const area = document.getElementById('resultArea');
-  if (!area || lastAuthSuccess === null) return;
-  area.innerHTML = lastAuthSuccess
-    ? '<div class="result success">' + t('resultSuccess') + '</div>'
-    : '<div class="result failure">' + t('resultFailure') + '</div>';
-}
 
 function applyLanguage() {
   document.documentElement.lang = LANG;
@@ -580,28 +236,103 @@ function applyLanguage() {
   document.querySelectorAll('[data-i18n-html]').forEach(el => { el.innerHTML = t(el.dataset.i18nHtml); });
   document.getElementById('langKo').classList.toggle('on', LANG === 'ko');
   document.getElementById('langEn').classList.toggle('on', LANG === 'en');
-  // 동적 요소
-  const ps = document.getElementById('pairingStatus');
-  if (ps) { ps.className = 'pairing-status' + (pairingConnectedFlag ? ' connected' : ''); ps.textContent = t(pairingStatusKey); }
-  updateInputDisplay();
+  if (!registeredUserId) {
+    const ut = document.getElementById('userText');
+    if (ut) ut.textContent = t('userPending');
+  }
   renderLog();
-  renderResult();
+  renderResultBanner();
+  if (currentMobileUrl) renderQr(currentMobileUrl);
 }
+
 function setLanguage(lang) {
   if (lang === LANG) return;
   LANG = lang;
   const url = new URL(location.href);
   url.searchParams.set('lang', lang);
-  history.replaceState(null, '', url);
+  history.replaceState(null, '', url);   // 새로고침 없이 주소만 갱신(세션 유지)
   applyLanguage();
 }
 
-// 페어링/등록 상태 배너 갱신 (언어 전환 시 재적용 위해 키·연결상태 보관)
-function setPairingStatus(key, connected) {
-  pairingStatusKey = key;
-  pairingConnectedFlag = !!connected;
-  const ps = document.getElementById('pairingStatus');
-  if (ps) { ps.className = 'pairing-status' + (connected ? ' connected' : ''); ps.textContent = t(key); }
+let registeredUserId = null;
+let currentMobileUrl = null;
+
+// 로그 기록: 문구 키(+뒤에 붙일 값)를 저장해 두었다가 현재 언어로 그린다
+function log(key, type = 'info', suffix = '') {
+  logEntries.push({ key, type, suffix, at: new Date() });
+  renderLog();
+}
+function renderLog() {
+  const box = document.getElementById('logBox');
+  if (!box) return;
+  box.innerHTML = logEntries.map(e => {
+    const time = e.at.toLocaleTimeString(t('locale'));
+    const text = (I18N[LANG][e.key] !== undefined ? t(e.key) : e.key) + (e.suffix || '');
+    return '<div class="log-line ' + e.type + '"><span class="t">[' + time + ']</span> ' + text + '</div>';
+  }).join('');
+  box.scrollTop = box.scrollHeight;
+}
+
+// 결과 배너도 언어 전환 시 다시 그릴 수 있도록 상태로 보관
+let lastAuthSuccess = null;
+function renderResultBanner() {
+  const banner = document.getElementById('resultBanner');
+  if (!banner || lastAuthSuccess === null) return;
+  banner.innerHTML = lastAuthSuccess
+    ? '<div class="result-banner success">' + t('bannerSuccess') + '</div>'
+    : '<div class="result-banner failure">' + t('bannerFailure') + '</div>';
+}
+
+// 휴대폰 페어링 완료(스캔) 시 QR 창 제거 → VNK 창만 가운데 표시
+function showStage2() {
+  stage2Shown = true;
+  document.getElementById('stage1').style.display = 'none';   // QR 창 제거
+  document.getElementById('stage2').style.display = '';
+  startIdleReset();                        // 스캔 후 1분간 휴대폰 입력 없으면 새 세션으로 복귀
+}
+
+// QR 스캔 후 휴대폰(VIK)에서 입력이 없는 상태가 1분 지속되면 자동으로 새 세션(QR)으로 되돌림
+let idleResetTimer = null;
+const IDLE_RESET_MS = 60 * 1000;
+function startIdleReset() {
+  clearTimeout(idleResetTimer);
+  idleResetTimer = setTimeout(() => {
+    if (currentSid) socket.emit('session-expired', { sid: currentSid });  // 기존 휴대폰에 '재스캔' 안내
+    renewToQr();
+  }, IDLE_RESET_MS);
+}
+function cancelIdleReset() { clearTimeout(idleResetTimer); idleResetTimer = null; }
+
+// 화면 로드 시 세션(π·QR) 자동 생성 → QR 즉시 표시
+async function startSession() {
+  cancelIdleReset();                 // 새 세션 시작 시 자동 복귀 타이머 해제
+  sessionUserId = 'demo-user'; // 실제 ID·비밀번호는 휴대폰에서 입력·등록
+  try {
+    const res = await fetch('/auth/start', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userId: sessionUserId })
+    });
+    const data = await res.json();
+    if (!res.ok) { log('logSessionFail', 'warning', (data.error || '')); return; }
+
+    currentSid = data.sid;
+
+    log('logSessionHead', 'info');
+    log('logSessionId', 'system', currentSid);
+    log('logNewPi', 'success');
+
+    socket.emit('join-pc', { sid: currentSid });
+    log('logPcJoin', 'system');
+
+    currentMobileUrl = data.mobileUrl;
+    renderQr(currentMobileUrl);
+
+    currentPi = data.pi;             // 실제 π는 보관만 (스캔 전에는 사용하지 않음)
+    renderPadB(STD_PI);              // 스캔 전: 일반 순서 키패드 표시
+    startQrCountdown(data.qrTtlMs);  // QR 1회용 만료 카운트다운 시작
+  } catch (err) {
+    log('logSessionError', 'warning', err.message);
+  }
 }
 
 // ── QR 1회용 만료 카운트다운 (nonce+TTL, 서버 바인딩) ──
@@ -621,248 +352,84 @@ function startQrCountdown(ttlMs){
     if(rem<=0){
       stopQrCountdown();
       if(currentSid) socket.emit('session-expired', { sid: currentSid });  // 스캔 후 확인 전 휴대폰에 안내
-      startAuth();                                                          // 새 QR 재발급
+      startSession();                                                      // 새 QR 재발급
     }
   };
   tick();
   qrCountdownTimer=setInterval(tick,1000);
 }
 
-async function startAuth() {
-  cancelIdleReset();                 // 새 세션 시작 시 자동 복귀 타이머 해제
-  try {
-    const res = await fetch('/auth/start', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ userId: currentUser })
-    });
-    const data = await res.json();
-    if (data.error) {
-      alert(t('alertStartFail') + data.error);
-      return;
-    }
-    currentSid = data.sid;
-    userInput = [];
-    mobilePaired = false;
-    userRegistered = false;
-    showStage1();                       // 새 세션·QR → 다시 1단계(QR만)로
-    setPairingStatus('pairingWait', false);
-    document.getElementById('padB').classList.add('disabled');
-    document.getElementById('resultArea').innerHTML = '';
-    emitProgress();
+// QR 표시 — 휴대폰도 PC와 같은 언어로 열리도록 주소에 lang을 실어 보낸다
+function renderQr(mobileUrl) {
+  const url = new URL(mobileUrl);
+  url.searchParams.set('lang', LANG);
+  const shown = url.toString();
+  const qrSize = 480;          // 요청 해상도(선명도 유지용)
+  const qrDisplay = 380;       // 표시 크기 — VNK 키패드 패널 높이에 맞춤
+  const qrApiUrl = 'https://api.qrserver.com/v1/create-qr-code/?size=' + qrSize + 'x' + qrSize +
+    '&data=' + encodeURIComponent(shown) + '&color=1E2761&bgcolor=ffffff&margin=8';
+  const img = new Image();
+  img.width = qrDisplay; img.height = qrDisplay; img.alt = 'QR';
+  // 인라인 width/height로 표시 크기를 VNK(320px)에 고정 (.qr-box img의 width:auto 를 덮어씀)
+  img.style.cssText = 'display:block;border-radius:8px;width:' + qrDisplay + 'px;height:' + qrDisplay + 'px;max-width:100%;';
+  img.onerror = () => { document.getElementById('qrBox').innerHTML = '<div class="qr-wait">' + t('qrFailed') + '</div>'; };
+  img.src = qrApiUrl;
+  const box = document.getElementById('qrBox');
+  box.innerHTML = '';
+  box.appendChild(img);
+}
 
-    log('logSessionHead', 'info');
-    log('logSessionId', 'system', { v: currentSid });
-    log('logNewPi', 'success');
-
-    socket.emit('join-pc', { sid: currentSid });
-    log('logPcJoin', 'system');
-
-    // QR 코드 생성 - 휴대폰도 PC와 같은 언어로 열리도록 lang 부착
-    const mobileUrl = data.mobileUrl + (data.mobileUrl.includes('?') ? '&' : '?') + 'lang=' + LANG;
-    const qrSize = 390;
-    const qrApiUrl = `https://api.qrserver.com/v1/create-qr-code/?size=${qrSize}x${qrSize}&data=${encodeURIComponent(mobileUrl)}&color=1E2761&bgcolor=ffffff&margin=10`;
-    document.getElementById('qrBox').innerHTML = `
-      <img src="${qrApiUrl}" width="${qrSize}" height="${qrSize}" alt="QR" style="display:block; border-radius:8px; width:${qrSize}px; height:${qrSize}px; max-width:100%;"
-           onerror="this.parentNode.innerHTML='<div style=\\'padding:40px;color:#991B1B\\'>'+t('qrFailed')+'</div>'">
-    `;
-
-    renderStandardPad();             // 스캔 전: 일반 순서 키패드 표시
-    updateInputDisplay();
-    updateProgressDots();
-    startQrCountdown(data.qrTtlMs);   // QR 1회용 만료 카운트다운 시작
-  } catch (err) {
-    log('logError', 'warning', { v: err.message });
+// π에 따라 숫자 배치: 숫자 d는 셀 NUMERIC_INDICES[pi[d]] 에 표시 (server.js와 동일 규칙)
+function renderPadB(pi) {
+  const cellDigit = new Array(12).fill(null);
+  for (let d = 0; d < 10; d++) { cellDigit[NUMERIC_INDICES[pi[d]]] = d; }
+  let html = '<div class="pad-b">';
+  for (let i = 0; i < 12; i++) {
+    if (i === 9 || i === 11) html += '<div class="b-cell empty"></div>';
+    else html += '<div class="b-cell">' + cellDigit[i] + '</div>';
   }
+  html += '</div>';
+  document.getElementById('padArea').innerHTML = html;
 }
 
 socket.on('mobile-paired', () => {
-  mobilePaired = true;
-  stopQrCountdown();                               // 확인됨 → QR 카운트다운 종료
-  showStage2();                                   // QR 스캔됨 → VIK(2단계) 표시
-  setPairingStatus('pairingConnected', false);   // 연결됨 · 등록 대기 (키패드는 아직 비활성)
+  stopQrCountdown();                       // 확인됨 → QR 카운트다운 종료
   log('logPaired', 'success');
+  log('logChannel2', 'info');
+  showStage2();
+  if (currentPi) renderPadB(currentPi);   // QR 스캔됨 → VTK(π 무작위 배치) 작동
 });
 
-// 휴대폰에서 비밀번호 등록 완료 → PC 키패드 활성화 (데모1 4단계)
+// 휴대폰에서 등록이 완료되면 사용자 ID 표시 갱신
 socket.on('user-registered', ({ userId }) => {
-  userRegistered = true;
-  showStage2();                                   // 안전장치: 등록 시에도 2단계 보장
-  if (userId) { currentUser = userId; }
-  setPairingStatus('pairingRegistered', true);
-  renderPadB();                                   // 스캔·등록됨 → 무표시 VIK로 전환 (VTK 작동)
-  document.getElementById('padB').classList.remove('disabled');
-  emitProgress();                                 // 휴대폰에 초기 진행상황(0/4) 전송
+  registeredUserId = userId;
   log('logRegistered', 'success');
-  log('logChan1', 'info');
-  log('logChan2', 'info');
 });
 
-// 휴대폰 '새 세션(QR 재발급)' 요청 → PC가 새 세션·QR 재발급
-socket.on('renew-session', () => {
-  startAuth();
+// 새 π 수신 → 숫자판 B 갱신 (인증 성공 후 자동 재배치 / 휴대폰의 수동 재배치)
+socket.on('pi-updated', ({ pi, auto }) => {
+  renderPadB(pi);
+  log(auto ? 'logAutoReshuffle' : 'logManualReshuffle', 'system');
 });
 
-// 휴대폰 '인증 제출' 원격 요청 → PC가 현재 입력한 좌표를 제출 (4개 모두 입력됐을 때만)
-socket.on('do-submit', () => {
-  if (userRegistered && userInput.length === passwordLength) submitAuth();
-});
-// 휴대폰 '다시 입력' 원격 요청 → PC 입력 초기화
-socket.on('do-clear', () => {
-  resetInput();
+socket.on('auth-result', ({ success }) => {
+  lastAuthSuccess = success;
+  renderResultBanner();
+  log('logResult', success ? 'success' : 'warning', success ? t('resultOkWord') : t('resultNgWord'));
 });
 
-// PC 입력 진행상황(클릭 수)을 휴대폰에 전송 → 휴대폰의 인증제출 버튼 활성화·진행 점 갱신
-function emitProgress() {
-  if (currentSid) socket.emit('pc-progress', { sid: currentSid, count: userInput.length, len: passwordLength });
+// PC를 1단계(QR 창만)로 되돌리고 새 세션·QR 발급
+function renewToQr() {
+  stage2Shown = false;
+  lastAuthSuccess = null;
+  document.getElementById('mainGrid').classList.add('qr-only');
+  document.getElementById('stage1').style.display = '';
+  document.getElementById('stage2').style.display = 'none';
+  const rb = document.getElementById('resultBanner'); if (rb) rb.innerHTML = '';
+  startSession();
 }
-
-// 휴대폰에서 수동 재배치 → PC 입력만 초기화 (π는 PC로 오지 않음)
-socket.on('reshuffled', () => {
-  userInput = [];
-  updateProgressDots();
-  emitProgress();
-  document.getElementById('resultArea').innerHTML = '';
-  updateInputDisplay();
-});
-
-// 스캔 전: 무표시 VIK (숫자 없이 · 표시만, 클릭 없음)
-function renderStandardPad() {
-  const padB = document.getElementById('padB');
-  padB.innerHTML = '';
-  for (let i = 0; i < 12; i++) {
-    const cell = document.createElement('div');
-    if (i === 9 || i === 11) { cell.className = 'b-cell empty'; }
-    else { cell.className = 'b-cell'; cell.textContent = '·'; }
-    padB.appendChild(cell);
-  }
-}
-
-// 스캔·등록 후: 무표시 VIK 입력판 (VTK 작동) — 클릭으로 좌표 입력
-function renderPadB() {
-  const padB = document.getElementById('padB');
-  padB.innerHTML = '';
-  for (let i = 0; i < 12; i++) {
-    const cell = document.createElement('div');
-    if (i === 9 || i === 11) {
-      cell.className = 'b-cell empty';
-    } else {
-      cell.className = 'b-cell';
-      cell.dataset.index = i;
-      cell.textContent = '·';
-      cell.onclick = () => handleCellClick(i, cell);
-      // 누르는 동안에만 '눌림' 표시 (떼면 즉시 사라짐 · 잔상 없음)
-      const press = () => cell.classList.add('pressing');
-      const release = () => cell.classList.remove('pressing');
-      cell.onmousedown = press;
-      cell.onmouseup = release;
-      cell.onmouseleave = release;
-      cell.ontouchstart = press;
-      cell.ontouchend = release;
-      cell.ontouchcancel = release;
-    }
-    padB.appendChild(cell);
-  }
-}
-
-function handleCellClick(idx, cellElem) {
-  if (!userRegistered || userInput.length >= passwordLength) return;
-  // 눌림 표시는 CSS :active(누르는 동안)로 처리 → 떼면 사라짐 (잔상 없음)
-  userInput.push(idx);
-  log('logClick', 'info', { i: idx });
-  updateInputDisplay();
-  updateProgressDots();
-  emitProgress();                                  // 휴대폰에 진행상황 전송 (제출 버튼은 휴대폰에 있음)
-  if (userInput.length === passwordLength) {
-    log('logSeqDone', 'success');
-  }
-}
-
-function updateInputDisplay() {
-  const display = document.getElementById('inputDisplay');
-  if (!display) return;
-  if (userInput.length === 0) {
-    display.textContent = userRegistered ? t('seqWaitInput') : t('seqWaitPair');
-  } else {
-    display.textContent = t('seqPrefix') + '(' + userInput.join(', ') + ')';
-  }
-}
-
-function updateProgressDots() {
-  document.querySelectorAll('.dot').forEach((dot, i) => {
-    if (i < userInput.length) dot.classList.add('filled');
-    else dot.classList.remove('filled');
-  });
-}
-
-function resetInput() {
-  userInput = [];
-  updateInputDisplay();
-  updateProgressDots();
-  emitProgress();
-  document.getElementById('resultArea').innerHTML = '';
-  log('logReset', 'system');
-}
-
-// 인증 성공 후: 서버가 휴대폰(VNK)을 새 π로 자동 재배치함 → PC는 입력만 비워 다음 라운드 준비
-// (결과 배너는 그대로 두어 성공을 잠시 보여줌)
-function prepareNextRound() {
-  userInput = [];
-  updateProgressDots();
-  emitProgress();
-  const display = document.getElementById('inputDisplay');
-  if (display) display.textContent = t('seqReshuffled');
-}
-
-// 수동 재배치: 같은 세션 유지, 서버가 새 π 생성 후 휴대폰(VNK)만 갱신 (QR 재스캔 불필요)
-async function manualReshuffle() {
-  if (!currentSid) return;
-  try {
-    const res = await fetch('/auth/reshuffle', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ sid: currentSid })
-    });
-    const data = await res.json();
-    if (data.error) { log('logError', 'warning', { v: data.error }); return; }
-    userInput = [];
-    lastAuthSuccess = null;
-    document.getElementById('resultArea').innerHTML = '';
-    updateProgressDots();
-    emitProgress();
-    const display = document.getElementById('inputDisplay');
-    if (display) display.textContent = t('seqReshuffled');
-    log('logManualReshuffle', 'info');
-  } catch (err) {
-    log('logError', 'warning', { v: err.message });
-  }
-}
-
-async function submitAuth() {
-  log('logSend', 'info', { c: userInput.join(',') });
-  try {
-    const res = await fetch('/auth/submit', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ sid: currentSid, cSequence: userInput })
-    });
-    const data = await res.json();
-    log('logCompute', 'system', { d: data.computedPassword });
-    log('logCompare', 'system');
-    const resultArea = document.getElementById('resultArea');
-    if (data.ok) {
-      log('logMatch', 'success');
-      log('logAutoReshuffle', 'success');
-      lastAuthSuccess = true; renderResult();
-      prepareNextRound();          // 서버가 새 π를 휴대폰(VNK)에 밀어줌 → PC 입력만 초기화
-    } else {
-      log('logFail', 'warning');
-      lastAuthSuccess = false; renderResult();
-    }
-  } catch (err) {
-    log('logError', 'warning', { v: err.message });
-  }
-}
+// 휴대폰 '새 세션(QR 재발급)' 요청 → 위와 동일하게 복귀
+socket.on('renew-session', () => { renewToQr(); });
 
 // KO/EN은 같은 세션의 PC·휴대폰 양쪽을 동시에 전환 (버튼 누른 쪽 언어로 동기화)
 socket.on('set-lang', ({ lang }) => setLanguage(lang));
@@ -873,18 +440,19 @@ document.getElementById('langEn').onclick = () => { setLanguage('en'); socket.em
 // 사라졌으면 자동으로 새 세션·QR을 재발급 → 화면의 QR이 항상 유효하게 유지됨
 let socketConnectedOnce = false;
 socket.on('connect', () => {
-  if (!socketConnectedOnce) { socketConnectedOnce = true; return; }  // 최초 연결은 startAuth가 처리
-  if (!currentSid) { startAuth(); return; }
+  if (!socketConnectedOnce) { socketConnectedOnce = true; return; }  // 최초 연결은 startSession이 처리
+  if (!currentSid) { startSession(); return; }
   fetch('/api/session-exists/' + currentSid)
     .then(r => r.json())
-    .then(d => { if (d && d.exists) { socket.emit('join-pc', { sid: currentSid }); } else { startAuth(); } })
-    .catch(() => { startAuth(); });
+    .then(d => { if (d && d.exists) { socket.emit('join-pc', { sid: currentSid }); } else { startSession(); } })
+    .catch(() => { startSession(); });
 });
 // 열려 있는 세션이 만료되지 않도록 주기적으로 keepalive 전송 (10분마다)
 setInterval(() => { if (currentSid) socket.emit('session-keepalive', { sid: currentSid }); }, 10 * 60 * 1000);
 
 applyLanguage();
-startAuth();   // 데모1 4단계: 로드 시 세션·QR 자동 생성 (등록은 휴대폰에서)
+log('logReady', 'system');
+startSession();
 </script>
 </body>
 </html>

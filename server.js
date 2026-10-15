@@ -73,7 +73,7 @@ function geoLookup(ip) {
           try {
             const j = JSON.parse(data);
             if (j.status !== 'success') return resolve(unknown);
-            const en = [j.country, j.regionName].filter(Boolean).join(' ') || 'Unknown';   // 시·도까지만
+            const en = [j.regionName, j.country].filter(Boolean).join(', ') || 'Unknown';   // 시·도까지만 ("Seoul, South Korea")
             let ko;
             if (j.countryCode === 'KR') {
               const sido = KR_REGION[j.region] || j.regionName || '';

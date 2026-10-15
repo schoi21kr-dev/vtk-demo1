@@ -195,7 +195,8 @@ app.get('/api/pair/:sid', async (req, res) => {
     n: 4,
     pi: session.pi,                 // 강조 위치 계산용
     password: user ? user.password : null, // 시연용: 위치 강조(토글)용
-    accessInfo: session.accessInfo          // { location, device, requestTimeMs }
+    accessInfo: session.accessInfo,         // { location, device, requestTimeMs }
+    qrRemainingMs: Math.max(0, (session.qrExpiresAt || Date.now()) - Date.now())  // 세션 만료까지 남은 시간(휴대폰 카운트다운 동기화)
   });
 });
 

@@ -70,6 +70,9 @@
   .lr-btns { display: flex; gap: 10px; }
   .lr-btns .btn { padding: 14px 8px; font-size: 15px; }
   .lr-btns .lr-cancel { flex: 1; }
+  /* 세션 만료 카운트다운 배지 (모든 화면 공통) */
+  .qr-ttl { display: block; width: max-content; max-width: 100%; margin: 14px auto 2px; font-size: 14px; font-weight: bold; color: var(--amber-txt); background: rgba(212,165,116,.14); border: 1px solid rgba(212,165,116,.5); border-radius: 999px; padding: 6px 14px; letter-spacing: .3px; text-align: center; }
+  .qr-ttl.ending { color: var(--red); background: var(--red-bg); border-color: rgba(153,27,27,.4); }
   /* 비밀번호 위치 강조 (시연 보조) */
   .reg-box { background: #F1F5F9; border: 1px solid #E2E8F0; border-radius: 10px; padding: 10px 12px; margin-bottom: 10px; }
   .reg-box .reg-lbl { display: block; font-size: 12px; color: var(--amber-txt); font-weight: bold; margin-bottom: 5px; }
@@ -97,6 +100,7 @@
   <div id="content">
     <div class="loading"><div class="spinner"></div><p data-i18n="connecting">서버에 연결 중...</p></div>
   </div>
+  <div class="qr-ttl" id="qrTtl" style="display:none;"></div>
 </div>
 
 <script src="/socket.io/socket.io.js"></script>
@@ -247,6 +251,7 @@ function applyLanguage() {
   if (ko && en) { ko.classList.toggle('on', LANG === 'ko'); en.classList.toggle('on', LANG === 'en'); }
   const badge = document.getElementById('statusBadge');
   if (badge && badge.classList.contains('live')) badge.textContent = t('statusLive');
+  refreshPhoneTtl();   // 카운트다운 배지 언어 즉시 반영
   if (expiredShown) { showError(t('expiredTitle'), t('expiredMsg')); return; }   // 안내창 상태: 언어만 바뀐 안내창 재표시
   if (confirmShown) { showConfirm(pairData && pairData.accessInfo); return; }    // 확인 화면: 현재 언어로 재표시
   if (cancelledShown) { showCancelled(); return; }                              // 취소 안내: 현재 언어로 재표시
@@ -277,6 +282,32 @@ function setLanguage(lang) {
 
 
 
+// ── 세션 만료 카운트다운 (서버 만료시각 기준, 확인창·VIK 모든 화면에 표시) ──
+let phoneTtlTimer = null, phoneTtlDeadline = 0;
+function fmtMMSS(ms){ const s=Math.max(0,Math.ceil(ms/1000)); const m=Math.floor(s/60), ss=s%60; return (m<10?'0':'')+m+':'+(ss<10?'0':'')+ss; }
+function qrTtlText(mmss){ return LANG==='en' ? ('🔒 One-time · expires in '+mmss) : ('🔒 1회용 · '+mmss+' 후 만료'); }
+function refreshPhoneTtl(){
+  const el=document.getElementById('qrTtl'); if(!el||!phoneTtlTimer) return;
+  const rem=phoneTtlDeadline-Date.now();
+  el.textContent=qrTtlText(fmtMMSS(rem));
+  el.classList.toggle('ending', rem<=20000);
+}
+function stopPhoneCountdown(){ if(phoneTtlTimer){ clearInterval(phoneTtlTimer); phoneTtlTimer=null; } const el=document.getElementById('qrTtl'); if(el) el.style.display='none'; }
+function startPhoneCountdown(remMs){
+  stopPhoneCountdown();
+  const el=document.getElementById('qrTtl'); if(!el) return;
+  phoneTtlDeadline=Date.now()+(remMs||60000);
+  el.style.display='';
+  const tick=()=>{
+    const rem=phoneTtlDeadline-Date.now();
+    el.textContent=qrTtlText(fmtMMSS(rem));
+    el.classList.toggle('ending', rem<=20000);
+    if(rem<=0){ stopPhoneCountdown(); if(!expiredShown){ expiredShown=true; locked=true; showError(t('expiredTitle'), t('expiredMsg')); } }
+  };
+  tick(); phoneTtlTimer=setInterval(tick,1000);
+  setTimeout(fitToScreen,0);
+}
+
 async function init() {
   if (!sid) { showError(t('errNoSid'), t('errNoSidMsg')); return; }
   try {
@@ -289,6 +320,7 @@ async function init() {
     password = (data.password != null) ? String(data.password) : null;
     // 확인 화면 단계에서도 KO/EN 동기화를 받도록 방에 먼저 참여(PC 전환은 아직 안 됨)
     socket.emit('join-mobile', { sid });
+    startPhoneCountdown(data.qrRemainingMs);   // 세션 만료 카운트다운(확인창·VIK 모두 표시)
     // QR 피싱(AiTM) 완화: 입력 패드 전에 먼저 '로그인 요청' 확인 화면을 보여줌
     showConfirm(data.accessInfo);
   } catch (err) { showError(t('errConn'), err.message); }
@@ -340,6 +372,7 @@ function confirmLogin() {
 function cancelLogin() {
   confirmShown = false;
   cancelledShown = true;
+  stopPhoneCountdown();
   socket.emit('cancel-login', { sid });
   showCancelled();
 }
@@ -602,7 +635,7 @@ function showResult(success, reason, reasonCode) {
 
 // PC/서버에서 결과 통보가 와도 동일 처리 (중복 안전)
 // PC가 1분 무입력으로 새 세션으로 돌아가면 → 이 창에 '재스캔' 안내 표시
-socket.on('session-expired', () => { locked = true; expiredShown = true; showError(t('expiredTitle'), t('expiredMsg')); });
+socket.on('session-expired', () => { locked = true; expiredShown = true; stopPhoneCountdown(); showError(t('expiredTitle'), t('expiredMsg')); });
 socket.on('auth-result', ({ success }) => { if (locked) showResult(success); });
 
 // 인증 성공 후 서버가 자동 재배치한 새 π를 반영(휴대폰 패드는 무표시이므로 내부 상태만 갱신)

@@ -133,6 +133,7 @@
       <div class="panel">
         <h2 data-i18n="padBHeading">&#9313; VNK &middot; 숫자표시 (PC)</h2>
         <div id="padArea"><div class="pad-wait" data-i18n-html="padWait">인증 세션을 시작하면<br>VNK가 표시됩니다.</div></div>
+        <div style="text-align:center;"><div class="qr-ttl" id="qrTtl2" style="display:none;"></div></div>
       </div>
       <div id="resultBanner" style="margin-top:16px;"></div>
       <!-- 로그(logBox)는 화면에서 제거됨. JS 오류 방지용 숨김 노드만 유지 -->
@@ -288,7 +289,7 @@ function showStage2() {
   stage2Shown = true;
   document.getElementById('stage1').style.display = 'none';   // QR 창 제거
   document.getElementById('stage2').style.display = '';
-  startIdleReset();                        // 스캔 후 1분간 휴대폰 입력 없으면 새 세션으로 복귀
+  // 세션 전체 1분 수명 카운트다운이 만료를 관장하므로 별도 idle 타이머는 사용하지 않음
 }
 
 // QR 스캔 후 휴대폰(VIK)에서 입력이 없는 상태가 1분 지속되면 자동으로 새 세션(QR)으로 되돌림
@@ -339,20 +340,26 @@ async function startSession() {
 let qrCountdownTimer = null;
 function fmtMMSS(ms){ const s=Math.max(0,Math.ceil(ms/1000)); const m=Math.floor(s/60), ss=s%60; return (m<10?'0':'')+m+':'+(ss<10?'0':'')+ss; }
 function qrTtlText(mmss){ return LANG==='en' ? ('🔒 One-time · expires in ' + mmss) : ('🔒 1회용 · ' + mmss + ' 후 만료'); }
-function stopQrCountdown(){ if(qrCountdownTimer){ clearInterval(qrCountdownTimer); qrCountdownTimer=null; } const el=document.getElementById('qrTtl'); if(el) el.style.display='none'; }
+// 세션 전체 수명 카운트다운을 QR·VNK 양쪽 배지(.qr-ttl)에 동일하게 표시
+function setTtlBadges(text, ending, show){
+  document.querySelectorAll('.qr-ttl').forEach(el=>{
+    if(show!==undefined) el.style.display = show ? '' : 'none';
+    if(text!==undefined) el.textContent = text;
+    if(ending!==undefined) el.classList.toggle('ending', ending);
+  });
+}
+function stopQrCountdown(){ if(qrCountdownTimer){ clearInterval(qrCountdownTimer); qrCountdownTimer=null; } setTtlBadges(undefined, undefined, false); }
 function startQrCountdown(ttlMs){
   stopQrCountdown();
-  const el=document.getElementById('qrTtl'); if(!el) return;
-  const deadline=Date.now()+(ttlMs||120000);
-  el.style.display='';
+  const deadline=Date.now()+(ttlMs||60000);
+  setTtlBadges(undefined, undefined, true);   // QR·VNK 배지 표시
   const tick=()=>{
     const rem=deadline-Date.now();
-    el.textContent=qrTtlText(fmtMMSS(rem));
-    el.classList.toggle('ending', rem<=20000);
+    setTtlBadges(qrTtlText(fmtMMSS(rem)), rem<=20000);
     if(rem<=0){
       stopQrCountdown();
-      if(currentSid) socket.emit('session-expired', { sid: currentSid });  // 스캔 후 확인 전 휴대폰에 안내
-      startSession();                                                      // 새 QR 재발급
+      if(currentSid) socket.emit('session-expired', { sid: currentSid });  // 휴대폰에 만료 안내
+      renewToQr();                                                         // 뷰를 QR로 되돌리고 새 세션·QR 발급
     }
   };
   tick();
@@ -393,7 +400,7 @@ function renderPadB(pi) {
 }
 
 socket.on('mobile-paired', () => {
-  stopQrCountdown();                       // 확인됨 → QR 카운트다운 종료
+  // 세션 전체 1분 수명: 확인 후에도 카운트다운 유지(VNK에 계속 표시)
   log('logPaired', 'success');
   log('logChannel2', 'info');
   showStage2();

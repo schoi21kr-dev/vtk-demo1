@@ -51,26 +51,43 @@ function parseUA(ua) {
   else if (/Safari\//.test(ua)) br = 'Safari';
   return os + ' · ' + br;
 }
+// 한국 시·도 (ISO 3166-2:KR 지역코드 → 한국어 명칭). ip-api는 한국어(lang=ko) 미지원이므로 코드로 매핑.
+const KR_REGION = {
+  '11': '서울특별시', '26': '부산광역시', '27': '대구광역시', '28': '인천광역시',
+  '29': '광주광역시', '30': '대전광역시', '31': '울산광역시', '50': '세종특별자치시',
+  '41': '경기도', '42': '강원특별자치도', '43': '충청북도', '44': '충청남도',
+  '45': '전북특별자치도', '46': '전라남도', '47': '경상북도', '48': '경상남도', '49': '제주특별자치도'
+};
+// 접속 위치를 { ko, en } 두 언어로 반환 (시·도 수준까지만, 시·군·구 제외)
 function geoLookup(ip) {
   return new Promise((resolve) => {
     if (!ip || /^(127\.|10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.|::1|fc|fd|fe80)/.test(ip)) {
-      return resolve('로컬/사설망');
+      return resolve({ ko: '로컬/사설망', en: 'Local/Private' });
     }
+    const unknown = { ko: '알 수 없음', en: 'Unknown' };
     try {
-      const r = http.get('http://ip-api.com/json/' + encodeURIComponent(ip) + '?fields=status,country,regionName,city&lang=ko', { timeout: 2500 }, (resp) => {
+      const r = http.get('http://ip-api.com/json/' + encodeURIComponent(ip) + '?fields=status,country,countryCode,region,regionName', { timeout: 2500 }, (resp) => {
         let data = '';
         resp.on('data', c => data += c);
         resp.on('end', () => {
           try {
             const j = JSON.parse(data);
-            if (j.status === 'success') resolve([j.country, j.regionName, j.city].filter(Boolean).join(' ') || '알 수 없음');
-            else resolve('알 수 없음');
-          } catch (_) { resolve('알 수 없음'); }
+            if (j.status !== 'success') return resolve(unknown);
+            const en = [j.country, j.regionName].filter(Boolean).join(' ') || 'Unknown';   // 시·도까지만
+            let ko;
+            if (j.countryCode === 'KR') {
+              const sido = KR_REGION[j.region] || j.regionName || '';
+              ko = ('대한민국' + (sido ? ' ' + sido : '')).trim();
+            } else {
+              ko = en;   // 한국 외 지역은 영문으로 표시
+            }
+            resolve({ ko: ko || '알 수 없음', en });
+          } catch (_) { resolve(unknown); }
         });
       });
-      r.on('error', () => resolve('알 수 없음'));
-      r.on('timeout', () => { r.destroy(); resolve('알 수 없음'); });
-    } catch (_) { resolve('알 수 없음'); }
+      r.on('error', () => resolve(unknown));
+      r.on('timeout', () => { r.destroy(); resolve(unknown); });
+    } catch (_) { resolve(unknown); }
   });
 }
 
@@ -121,7 +138,7 @@ app.post('/auth/start', (req, res) => {
   const pi = generatePi();
   const nonce = crypto.randomBytes(8).toString('hex');
   const now = Date.now();
-  const accessInfo = { location: '조회 중…', device: parseUA(req.headers['user-agent']), requestTimeMs: now };
+  const accessInfo = { location: { ko: '조회 중…', en: 'Checking…' }, device: parseUA(req.headers['user-agent']), requestTimeMs: now };
   const geoPromise = geoLookup(clientIpOf(req)).then(loc => { accessInfo.location = loc; return loc; });
   sessions.set(sid, {
     sid, pi, userId,

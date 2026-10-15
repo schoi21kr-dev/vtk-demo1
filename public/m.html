@@ -300,10 +300,16 @@ function fmtReqTime(ms) {
   try { return new Date(ms).toLocaleString(LANG === 'ko' ? 'ko-KR' : 'en-US'); }
   catch (e) { return new Date(ms).toLocaleString(); }
 }
+// 접속 위치는 서버가 {ko,en}로 내려줌 → 현재 언어로 표시(문자열 폴백도 호환)
+function locText(loc) {
+  if (!loc) return t('locUnknown');
+  if (typeof loc === 'string') return loc;
+  return loc[LANG] || loc.en || loc.ko || t('locUnknown');
+}
 function showConfirm(info) {
   confirmShown = true;
   info = info || {};
-  const loc = info.location || t('locUnknown');
+  const loc = locText(info.location);
   const dev = info.device || t('locUnknown');
   const time = fmtReqTime(info.requestTimeMs);
   document.getElementById('content').innerHTML = `

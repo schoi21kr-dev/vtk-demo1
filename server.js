@@ -27,7 +27,7 @@ app.use(express.json());
 app.set('trust proxy', true);   // Render 프록시 뒤에서 실제 클라이언트 IP 획득
 
 // ===== QR 피싱(AiTM) 완화: 1회용 nonce + 짧은 TTL =====
-const QR_TTL_MS = 2 * 60 * 1000;   // QR 1회용 유효시간(2분)
+const QR_TTL_MS = 1 * 60 * 1000;   // QR 1회용 유효시간(1분)
 
 function clientIpOf(req) {
   const xf = (req.headers['x-forwarded-for'] || '').split(',')[0].trim();

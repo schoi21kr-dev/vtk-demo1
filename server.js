@@ -175,9 +175,8 @@ app.get('/api/pair/:sid', async (req, res) => {
   const { sid } = req.params;
   const session = sessions.get(sid);
   if (!session) return res.status(404).json({ error: '세션 만료 또는 없음' });
-  // 1회용 QR 검증: nonce 일치 + 미만료 + 미사용
+  // 1회용 QR 검증: nonce 일치 + 미사용 (시간 만료는 입력 단계 타이머로 이전 — QR 대기 중엔 만료 안 함)
   if (session.nonce && req.query.n !== session.nonce) return res.status(403).json({ error: 'QR이 유효하지 않습니다' });
-  if (session.qrExpiresAt && Date.now() > session.qrExpiresAt) return res.status(410).json({ error: 'QR이 만료되었습니다' });
   if (session.qrUsed) return res.status(409).json({ error: '이미 사용된 QR입니다' });
   session.qrUsed = true;              // 1회용 소비 (재사용/피싱 방지)
   session.mobileConnected = true;
@@ -196,7 +195,7 @@ app.get('/api/pair/:sid', async (req, res) => {
     pi: session.pi,                 // 강조 위치 계산용
     password: user ? user.password : null, // 시연용: 위치 강조(토글)용
     accessInfo: session.accessInfo,         // { location, device, requestTimeMs }
-    qrRemainingMs: Math.max(0, (session.qrExpiresAt || Date.now()) - Date.now())  // 세션 만료까지 남은 시간(휴대폰 카운트다운 동기화)
+    qrTtlMs: QR_TTL_MS                       // '확인' 후 입력 단계에서 시작할 만료 TTL
   });
 });
 

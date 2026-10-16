@@ -283,7 +283,7 @@ function setLanguage(lang) {
 
 
 
-// ── 세션 만료 카운트다운 (서버 만료시각 기준, 확인창·VIK 모든 화면에 표시) ──
+// ── 세션 만료 카운트다운 — '확인' 클릭(입력 단계 진입) 시점부터 작동, VIK 화면에 표시 ──
 let phoneTtlTimer = null, phoneTtlDeadline = 0;
 function fmtMMSS(ms){ const s=Math.max(0,Math.ceil(ms/1000)); const m=Math.floor(s/60), ss=s%60; return (m<10?'0':'')+m+':'+(ss<10?'0':'')+ss; }
 function qrTtlText(mmss){ return LANG==='en' ? ('🔒 One-time · expires in '+mmss) : ('🔒 1회용 · '+mmss+' 후 만료'); }
@@ -294,10 +294,10 @@ function refreshPhoneTtl(){
   el.classList.toggle('ending', rem<=20000);
 }
 function stopPhoneCountdown(){ if(phoneTtlTimer){ clearInterval(phoneTtlTimer); phoneTtlTimer=null; } const el=document.getElementById('qrTtl'); if(el) el.style.display='none'; }
-function startPhoneCountdown(remMs){
+function startPhoneCountdown(ttlMs){   // '확인' 후 호출 — 타이머 시작 + 배지 표시
   stopPhoneCountdown();
   const el=document.getElementById('qrTtl'); if(!el) return;
-  phoneTtlDeadline=Date.now()+(remMs||60000);
+  phoneTtlDeadline=Date.now()+(ttlMs||60000);
   el.style.display='';
   const tick=()=>{
     const rem=phoneTtlDeadline-Date.now();
@@ -321,8 +321,7 @@ async function init() {
     password = (data.password != null) ? String(data.password) : null;
     // 확인 화면 단계에서도 KO/EN 동기화를 받도록 방에 먼저 참여(PC 전환은 아직 안 됨)
     socket.emit('join-mobile', { sid });
-    startPhoneCountdown(data.qrRemainingMs);   // 세션 만료 카운트다운(확인창·VIK 모두 표시)
-    // QR 피싱(AiTM) 완화: 입력 패드 전에 먼저 '로그인 요청' 확인 화면을 보여줌
+    // QR 피싱(AiTM) 완화: 입력 패드 전에 먼저 '로그인 요청' 확인 화면을 보여줌 (만료 타이머는 '확인' 후 시작)
     showConfirm(data.accessInfo);
   } catch (err) { showError(t('errConn'), err.message); }
 }
@@ -368,6 +367,7 @@ function confirmLogin() {
   confirmShown = false;
   socket.emit('confirm-login', { sid });
   renderPadA();
+  startPhoneCountdown(pairData && pairData.qrTtlMs);   // '확인' 클릭 시점부터 만료 카운트다운 시작(VIK)
 }
 // 취소 → PC는 새 QR 재발급(서버가 pc-sid에 renew-session 중계), 휴대폰은 취소 안내
 function cancelLogin() {

@@ -125,7 +125,6 @@
       <div class="panel qr-panel">
         <h2 data-i18n="qrHeading">&#9312; 휴대폰으로 QR 코드 스캔</h2>
         <div class="qr-box" id="qrBox"><div class="qr-wait" data-i18n="qrLoading">QR 코드 로딩 중…</div></div>
-        <div class="qr-ttl" id="qrTtl" style="display:none;"></div>
       </div>
     </div>
 
@@ -258,6 +257,7 @@ function setLanguage(lang) {
 
 let registeredUserId = null;
 let currentMobileUrl = null;
+let currentQrTtlMs = 60000;   // '확인' 후 입력 단계에서 시작할 만료 TTL
 
 // 로그 기록: 문구 키(+뒤에 붙일 값)를 저장해 두었다가 현재 언어로 그린다
 function log(key, type = 'info', suffix = '') {
@@ -331,7 +331,7 @@ async function startSession() {
 
     currentPi = data.pi;             // 실제 π는 보관만 (스캔 전에는 사용하지 않음)
     renderPadB(STD_PI);              // 스캔 전: 일반 순서 키패드 표시
-    startQrCountdown(data.qrTtlMs);  // QR 1회용 만료 카운트다운 시작
+    currentQrTtlMs = data.qrTtlMs;   // 입력 단계용 TTL 보관(타이머는 '확인' 후 시작)
   } catch (err) {
     log('logSessionError', 'warning', err.message);
   }
@@ -401,7 +401,8 @@ function renderPadB(pi) {
 }
 
 socket.on('mobile-paired', () => {
-  // 세션 전체 1분 수명: 확인 후에도 카운트다운 유지(VNK에 계속 표시)
+  // '확인' 클릭(입력 단계 진입) 시점부터 만료 카운트다운 시작 — VNK에 표시
+  startQrCountdown(currentQrTtlMs);
   log('logPaired', 'success');
   log('logChannel2', 'info');
   showStage2();

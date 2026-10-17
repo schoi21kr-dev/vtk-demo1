@@ -75,13 +75,19 @@
   @keyframes ttlBlink { 0%, 100% { opacity: 1; } 50% { opacity: .25; } }
   .qr-ttl.ending { color: var(--red); background: var(--red-bg); border-color: rgba(153,27,27,.4); animation: ttlBlink 2s ease-in-out infinite; }
   /* 비밀번호 안내 (확인창 아래) */
-  .pw-notice { margin: 14px auto 0; font-size: 13px; color: #64748B; text-align: center; line-height: 1.5; }
+  .pw-notice { margin: 14px auto 0; font-size: 18px; color: #64748B; text-align: center; line-height: 1.5; }
   .pw-notice b { color: #B07C3A; letter-spacing: 2px; }
   /* 인증 결과 배너 (화면 가운데) */
   .auth-screen { display: flex; align-items: center; justify-content: center; min-height: 300px; padding: 30px 18px; }
   .auth-banner { width: 100%; max-width: 360px; padding: 26px 24px; border-radius: 16px; font-size: 20px; font-weight: bold; text-align: center; line-height: 1.5; }
   .auth-banner.ok { background: #1D4ED8; color: #fff; }
   .auth-banner.fail { background: #B91C1C; color: #fff; }
+  /* 카메라 스캔 모드 */
+  .cam-wrap { position: relative; width: 100%; max-width: 360px; margin: 10px auto; aspect-ratio: 3/4; background: #000; border-radius: 14px; overflow: hidden; }
+  .cam-wrap video { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .cam-overlay { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; pointer-events: none; }
+  .cam-frame { width: 62%; aspect-ratio: 1; border: 3px solid rgba(255,255,255,.9); border-radius: 16px; }
+  .cam-hint { margin-top: 18px; color: #fff; font-size: 16px; font-weight: bold; text-shadow: 0 1px 4px rgba(0,0,0,.7); }
   /* 비밀번호 위치 강조 (시연 보조) */
   .reg-box { background: #F1F5F9; border: 1px solid #E2E8F0; border-radius: 10px; padding: 10px 12px; margin-bottom: 10px; }
   .reg-box .reg-lbl { display: block; font-size: 12px; color: var(--amber-txt); font-weight: bold; margin-bottom: 5px; }
@@ -112,6 +118,7 @@
   <div class="qr-ttl" id="qrTtl" style="display:none;"></div>
 </div>
 
+<script src="jsQR.min.js"></script>
 <script src="/socket.io/socket.io.js"></script>
 <script>
 function getSid() {
@@ -183,6 +190,9 @@ const I18N = {
     completedMsg: '이 창을 닫으셔도 됩니다.',
     rescanTitle: 'QR 코드를 다시 스캔해 주세요',
     rescanMsg: 'PC에 새 QR이 표시되었습니다.',
+    authDoneClose: '✓ 인증 성공<br>창을 닫으세요',
+    camHint: 'QR 코드를 비추세요',
+    camFail: '카메라를 사용할 수 없습니다. QR 코드를 다시 스캔해 주세요.',
     reqTitle: 'VTK 데모 로그인 요청',
     locLabel: '접속 위치',
     devLabel: '접속 기기',
@@ -233,6 +243,9 @@ const I18N = {
     completedMsg: 'You may close this window.',
     rescanTitle: 'Please scan the QR code again',
     rescanMsg: 'A new QR code is shown on the PC.',
+    authDoneClose: '✓ Authentication successful<br>Please close this window',
+    camHint: 'Point the camera at the QR code',
+    camFail: 'Camera unavailable. Please scan the QR code again.',
     reqTitle: 'VTK Demo login request',
     locLabel: 'Location',
     devLabel: 'Device',
@@ -273,9 +286,9 @@ function applyLanguage() {
   const badge = document.getElementById('statusBadge');
   if (badge && badge.classList.contains('live')) badge.textContent = t('statusLive');
   refreshPhoneTtl();   // 카운트다운 배지 언어 즉시 반영
-  if (authResult) { renderAuthResult(); return; }                               // 인증 결과 배너: 현재 언어로 재표시
-  if (completedShown) { renderCompleted(); return; }                            // 인증 완료 화면
-  if (rescanShown) { renderRescan(); return; }                                  // 재스캔 안내
+  if (cameraShown) return;                                                      // 카메라 스캔 중 — 유지
+  if (successShown) { renderSuccess(); return; }                                // 인증 성공(창 닫기)
+  if (authResult) { renderAuthResult(); return; }                               // 실패 배너
   if (expiredShown) { renderExpired(); return; }                                // 세션 종료 안내
   if (confirmShown) { showConfirm(pairData && pairData.accessInfo); return; }    // 확인 화면: 현재 언어로 재표시
   if (cancelledShown) { showCancelled(); return; }                              // 취소 안내: 현재 언어로 재표시
@@ -594,50 +607,88 @@ async function submitAuth() {
   }
 }
 
-// ── 인증 결과: 성공 → 청색 배너 3초 → 완료 화면 / 실패 → 적색 배너 3초 → VIK 재입력 ──
-let authResult = null;      // 'ok' | 'fail' (전환 중)
-let completedShown = false; // 인증 완료 화면
-let rescanShown = false;    // 재스캔 안내 화면
-function renderAuthResult() {
-  const kind = authResult === 'ok' ? 'ok' : 'fail';
-  const text = authResult === 'ok' ? t('authSuccess') : t('authFailRetry');
+// ── 인증 결과: 성공 → 청색 '인증 성공·창 닫기' 유지 / 실패 → 적색 배너 3초 → VIK 재입력 ──
+let authResult = null;      // 'fail' (전환 중)
+let successShown = false;   // 인증 성공(창 닫기) 화면 — 유지
+let cameraShown = false;    // 카메라 스캔 모드
+let camStream = null, camRAF = null;
+function renderAuthResult() {   // 실패 배너
   document.getElementById('content').innerHTML =
-    '<div class="auth-screen"><div class="auth-banner ' + kind + '">' + text + '</div></div>';
+    '<div class="auth-screen"><div class="auth-banner fail">' + t('authFailRetry') + '</div></div>';
   setTimeout(fitToScreen, 0);
 }
-function renderCompleted() {
+function renderSuccess() {      // 성공 — 창 닫을 때까지 유지
   document.getElementById('content').innerHTML =
-    '<div class="error-screen"><h2>' + t('completedTitle') + '</h2><p>' + t('completedMsg') + '</p></div>';
+    '<div class="auth-screen"><div class="auth-banner ok">' + t('authDoneClose') + '</div></div>';
   setTimeout(fitToScreen, 0);
 }
-function renderExpired() {
+function renderExpired() {      // 세션 종료 + 재스캔 안내 (함께)
   document.getElementById('content').innerHTML =
-    '<div class="error-screen"><h2>' + t('expiredTitle') + '</h2></div>';
-  setTimeout(fitToScreen, 0);
-}
-function renderRescan() {
-  document.getElementById('content').innerHTML =
-    '<div class="error-screen"><h2>' + t('rescanTitle') + '</h2><p>' + t('rescanMsg') + '</p></div>';
+    '<div class="error-screen"><h2>' + t('expiredTitle') + '</h2><p>' + t('rescanTitle') + '</p></div>';
   setTimeout(fitToScreen, 0);
 }
 function showResult(success) {
   locked = true;
   if (success) {
     stopPhoneCountdown();
-    authResult = 'ok'; renderAuthResult();
-    setTimeout(() => { authResult = null; completedShown = true; renderCompleted(); }, 3000);
+    successShown = true; renderSuccess();   // 창 닫을 때까지 유지
   } else {
     authResult = 'fail'; renderAuthResult();
     setTimeout(() => { authResult = null; userInput = []; locked = false; renderPadA(); }, 3000);
   }
 }
-// 제한시간 초과: '세션이 종료되었습니다' 3초 → 재스캔 안내
+// 제한시간 초과: '세션이 종료되었습니다 · QR 다시 스캔' 3초 → 카메라 스캔 모드
 function showExpired() {
-  if (expiredShown) return;
+  if (expiredShown || successShown || cameraShown) return;
   expiredShown = true; locked = true;
   stopPhoneCountdown();
   renderExpired();
-  setTimeout(() => { rescanShown = true; renderRescan(); }, 3000);
+  setTimeout(startCameraScan, 3000);
+}
+// ── 카메라 스캔 모드 (페이지 내 QR 인식 → 새 세션 페이지로 이동) ──
+async function startCameraScan() {
+  expiredShown = false; cameraShown = true;
+  document.getElementById('content').innerHTML =
+    '<div class="cam-wrap"><video id="camVideo" playsinline muted></video>' +
+    '<div class="cam-overlay"><div class="cam-frame"></div><div class="cam-hint">' + t('camHint') + '</div></div></div>';
+  setTimeout(fitToScreen, 0);
+  const video = document.getElementById('camVideo');
+  try {
+    camStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: 'environment' } }, audio: false });
+    video.srcObject = camStream;
+    await video.play();
+    scanLoop(video);
+  } catch (err) {
+    cameraShown = false;
+    document.getElementById('content').innerHTML =
+      '<div class="error-screen"><h2>' + t('rescanTitle') + '</h2><p>' + t('camFail') + '</p></div>';
+    setTimeout(fitToScreen, 0);
+  }
+}
+function scanLoop(video) {
+  const canvas = document.createElement('canvas');
+  const ctx = canvas.getContext('2d', { willReadFrequently: true });
+  const tick = () => {
+    if (!cameraShown) return;
+    if (video.readyState >= 2 && window.jsQR && video.videoWidth) {
+      canvas.width = video.videoWidth; canvas.height = video.videoHeight;
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+      const img = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      const code = jsQR(img.data, img.width, img.height, { inversionAttempts: 'dontInvert' });
+      if (code && code.data && /\/m\.html\?/.test(code.data)) {
+        stopCamera();
+        window.location.href = code.data;   // 새 QR이 가리키는 새 세션으로 이동
+        return;
+      }
+    }
+    camRAF = requestAnimationFrame(tick);
+  };
+  camRAF = requestAnimationFrame(tick);
+}
+function stopCamera() {
+  cameraShown = false;
+  if (camRAF) { cancelAnimationFrame(camRAF); camRAF = null; }
+  if (camStream) { camStream.getTracks().forEach(tr => tr.stop()); camStream = null; }
 }
 
 // PC/서버에서 결과 통보가 와도 동일 처리 (중복 안전)

@@ -71,9 +71,17 @@
   .lr-btns .btn { padding: 14px 8px; font-size: 15px; }
   .lr-btns .lr-cancel { flex: 1; }
   /* 세션 만료 카운트다운 배지 (모든 화면 공통) */
-  .qr-ttl { display: block; width: max-content; max-width: 100%; margin: 14px auto 2px; font-size: 14px; font-weight: bold; color: var(--amber-txt); background: rgba(212,165,116,.14); border: 1px solid rgba(212,165,116,.5); border-radius: 999px; padding: 6px 14px; letter-spacing: .3px; text-align: center; }
+  .qr-ttl { display: block; width: max-content; max-width: 100%; margin: 14px auto 2px; font-size: 14px; font-weight: bold; color: #475569; background: #E5E7EB; border: 1px solid #CBD5E1; border-radius: 999px; padding: 6px 14px; letter-spacing: .3px; text-align: center; }
   @keyframes ttlBlink { 0%, 100% { opacity: 1; } 50% { opacity: .25; } }
   .qr-ttl.ending { color: var(--red); background: var(--red-bg); border-color: rgba(153,27,27,.4); animation: ttlBlink 2s ease-in-out infinite; }
+  /* 비밀번호 안내 (확인창 아래) */
+  .pw-notice { margin: 14px auto 0; font-size: 13px; color: #64748B; text-align: center; line-height: 1.5; }
+  .pw-notice b { color: #B07C3A; letter-spacing: 2px; }
+  /* 인증 결과 배너 (화면 가운데) */
+  .auth-screen { display: flex; align-items: center; justify-content: center; min-height: 300px; padding: 30px 18px; }
+  .auth-banner { width: 100%; max-width: 360px; padding: 26px 24px; border-radius: 16px; font-size: 20px; font-weight: bold; text-align: center; line-height: 1.5; }
+  .auth-banner.ok { background: #1D4ED8; color: #fff; }
+  .auth-banner.fail { background: #B91C1C; color: #fff; }
   /* 비밀번호 위치 강조 (시연 보조) */
   .reg-box { background: #F1F5F9; border: 1px solid #E2E8F0; border-radius: 10px; padding: 10px 12px; margin-bottom: 10px; }
   .reg-box .reg-lbl { display: block; font-size: 12px; color: var(--amber-txt); font-weight: bold; margin-bottom: 5px; }
@@ -169,6 +177,12 @@ const I18N = {
     errPairMsg: '세션이 만료되었거나 존재하지 않습니다.',
     expiredTitle: '세션이 종료되었습니다',
     expiredMsg: '이 창을 닫고 QR 코드를 다시 스캔해 주세요.',
+    pwNotice: '현재 비밀번호는 <b>****</b>로 설정되어 있습니다.',
+    authFailRetry: '인증 실패! 비밀번호를 다시 입력해주세요',
+    completedTitle: '✓ 인증 완료',
+    completedMsg: '이 창을 닫으셔도 됩니다.',
+    rescanTitle: 'QR 코드를 다시 스캔해 주세요',
+    rescanMsg: 'PC에 새 QR이 표시되었습니다.',
     reqTitle: 'VTK 데모 로그인 요청',
     locLabel: '접속 위치',
     devLabel: '접속 기기',
@@ -213,6 +227,12 @@ const I18N = {
     errPairMsg: 'The session has expired or does not exist.',
     expiredTitle: 'Session ended',
     expiredMsg: 'Please close this window and scan the QR code again.',
+    pwNotice: 'The current password is set to <b>****</b>.',
+    authFailRetry: 'Authentication failed! Please enter your password again',
+    completedTitle: '✓ Authentication complete',
+    completedMsg: 'You may close this window.',
+    rescanTitle: 'Please scan the QR code again',
+    rescanMsg: 'A new QR code is shown on the PC.',
     reqTitle: 'VTK Demo login request',
     locLabel: 'Location',
     devLabel: 'Device',
@@ -253,7 +273,10 @@ function applyLanguage() {
   const badge = document.getElementById('statusBadge');
   if (badge && badge.classList.contains('live')) badge.textContent = t('statusLive');
   refreshPhoneTtl();   // 카운트다운 배지 언어 즉시 반영
-  if (expiredShown) { showError(t('expiredTitle'), t('expiredMsg')); return; }   // 안내창 상태: 언어만 바뀐 안내창 재표시
+  if (authResult) { renderAuthResult(); return; }                               // 인증 결과 배너: 현재 언어로 재표시
+  if (completedShown) { renderCompleted(); return; }                            // 인증 완료 화면
+  if (rescanShown) { renderRescan(); return; }                                  // 재스캔 안내
+  if (expiredShown) { renderExpired(); return; }                                // 세션 종료 안내
   if (confirmShown) { showConfirm(pairData && pairData.accessInfo); return; }    // 확인 화면: 현재 언어로 재표시
   if (cancelledShown) { showCancelled(); return; }                              // 취소 안내: 현재 언어로 재표시
   if (document.getElementById('padA')) redrawTexts();
@@ -267,8 +290,7 @@ function redrawTexts() {
   const pwNew = document.getElementById('pwNew'); if (pwNew) pwNew.placeholder = t('pwChangePlaceholder');
   const lbls = document.querySelectorAll('.reg-box .reg-lbl');
   if (lbls[0]) lbls[0].textContent = t('labelUserId');
-  if (lastResult) showResult(lastResult.success, null, lastResult.reasonCode);
-  else showPrompt();
+  showPrompt();
 }
 
 function setLanguage(lang) {
@@ -303,7 +325,7 @@ function startPhoneCountdown(ttlMs){   // '확인' 후 호출 — 타이머 시�
     const rem=phoneTtlDeadline-Date.now();
     el.textContent=qrTtlText(fmtMMSS(rem));
     el.classList.toggle('ending', rem<=20000);
-    if(rem<=0){ stopPhoneCountdown(); if(!expiredShown){ expiredShown=true; locked=true; showError(t('expiredTitle'), t('expiredMsg')); } }
+    if(rem<=0){ showExpired(); }
   };
   tick(); phoneTtlTimer=setInterval(tick,1000);
   setTimeout(fitToScreen,0);
@@ -357,7 +379,8 @@ function showConfirm(info) {
         <button class="btn btn-secondary lr-cancel" id="cancelLoginBtn">${t('btnCancelLogin')}</button>
         <button class="btn btn-primary lr-confirm" id="confirmLoginBtn">${t('btnConfirmLogin')}</button>
       </div>
-    </div>`;
+    </div>
+    <div class="pw-notice">${t('pwNotice')}</div>`;
   const cb = document.getElementById('confirmLoginBtn'); if (cb) cb.onclick = confirmLogin;
   const xb = document.getElementById('cancelLoginBtn'); if (xb) xb.onclick = cancelLogin;
   setTimeout(fitToScreen, 0);
@@ -393,27 +416,8 @@ function showError(title, msg) {
 
 function renderPadA() {
   let html = `
-    <div id="hlArea"></div>
     <div class="progress" id="progress"></div>
-    <div class="pad-a" id="padA"></div>
-    <div id="posList"></div>
-    <div class="controls">
-      <button class="btn btn-secondary" id="clearBtn">${t('btnClear')}</button>
-      <button class="btn btn-primary" id="submitBtn" disabled>${t('btnSubmit')}</button>
-    </div>
-    <div class="session-row">
-      <button class="btn btn-reshuffle" id="reshuffleBtn">${t('btnReshuffle')}</button>
-      <button class="btn btn-reshuffle" id="newSessionBtn">${t('btnNewSession')}</button>
-    </div>
-    <div id="resultBanner"></div>
-    <div class="pw-change" id="pwChange" style="display:none;">
-      <a href="#" id="pwToggle" class="pw-toggle">${t('pwChangeLink')}</a>
-      <div id="pwPanel" class="pw-panel" style="display:none;">
-        <input type="text" id="pwNew" inputmode="numeric" maxlength="4" placeholder="${t('pwChangePlaceholder')}" autocomplete="off">
-        <button class="btn btn-secondary" id="pwApply">${t('pwChangeApply')}</button>
-      </div>
-      <div id="pwMsg" class="pw-msg"></div>
-    </div>`;
+    <div class="pad-a" id="padA"></div>`;
   document.getElementById('content').innerHTML = html;
 
   // 진행 점
@@ -435,21 +439,6 @@ function renderPadA() {
   }
 
   setTimeout(fitToScreen, 0);
-  document.getElementById('clearBtn').onclick = resetInput;
-  document.getElementById('submitBtn').onclick = submitAuth;
-  document.getElementById('reshuffleBtn').onclick = reshuffle;
-  document.getElementById('newSessionBtn').onclick = phoneNewSession;
-
-  // 비밀번호 변경 UI (이번 세션에만 적용, 저장하지 않음)
-  document.getElementById('pwToggle').onclick = (e) => {
-    e.preventDefault();
-    const panel = document.getElementById('pwPanel');
-    panel.style.display = (panel.style.display === 'none') ? 'flex' : 'none';
-    if (panel.style.display === 'flex') { document.getElementById('pwNew').focus(); fitToScreen(); }
-  };
-  document.getElementById('pwApply').onclick = applyPasswordChange;
-  reflectPwLock();
-
   showPrompt();
 }
 
@@ -530,7 +519,7 @@ function handleCellClick(idx, el) {
   el.classList.add('clicked');
   setTimeout(() => el.classList.remove('clicked'), 160);
   updateProgress();
-  if (userInput.length === pwLen) document.getElementById('submitBtn').disabled = false;
+  if (userInput.length === pwLen) submitAuth();   // 4자리 완성 → 자동 제출
 }
 
 // 화면 맞춤: 기본 90%로 축소하고, 그래도 넘치면 한 화면에 들어갈 때까지 자동으로 더 축소
@@ -574,7 +563,6 @@ function resetInput() {
   lastResult = null;
   userInput = []; locked = false;
   updateProgress();
-  document.getElementById('submitBtn').disabled = true;
   showPrompt();
 }
 
@@ -587,57 +575,74 @@ function getUserId() {
 }
 
 async function submitAuth() {
-  if (userInput.length !== pwLen) return;
-  const userId = getUserId();
-  const pw = getPassword();
-  if (!userId) {
-    const b = document.getElementById('resultBanner');
-    if (b) b.innerHTML = '<div class="result-banner failure">' + t('needInput') + '</div>';
-    return;
-  }
-  locked = true;
-  document.getElementById('submitBtn').disabled = true;
+  if (userInput.length !== pwLen || locked) return;
+  locked = true;   // 제출 중 패드 잠금
   try {
     // 1) 등록 (서버에는 등록 참조정보(해시)만 저장)
     const regRes = await fetch('/register', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ userId, password: pw, sid })
+      body: JSON.stringify({ userId: 'demo-user', password: getPassword(), sid })
     });
     const regData = await regRes.json();
-    if (!regRes.ok || !regData.ok) {
-      const b = document.getElementById('resultBanner');
-      if (b) b.innerHTML = '<div class="result-banner failure">' + t('regFailed') + '</div>';
-      locked = false; document.getElementById('submitBtn').disabled = false;
-      return;
-    }
+    if (!regRes.ok || !regData.ok) { showResult(false); return; }
     // 2) 좌표 시퀀스 C 제출 (비밀번호 숫자는 전송되지 않음)
     const res = await fetch('/auth/submit', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ sid, cSequence: userInput }) });
     const data = await res.json();
-    showResult(data.ok, data.reason, data.reasonCode);
+    showResult(!!data.ok);
   } catch (err) {
-    // 전송 오류가 나도 화면(패드·토글)을 지우지 않고 실패로 처리 후 재입력 유도
-    const banner = document.getElementById('resultBanner');
-    if (banner) banner.innerHTML = '<div class="result-banner failure">' + t('sendError') + '</div>';
-    scheduleReset(1600);
+    showResult(false);   // 전송 오류 → 실패 처리(재입력)
   }
 }
 
-function showResult(success, reason, reasonCode) {
-  lastResult = { success, reasonCode };
-  if (success) { pwChangeUnlocked = true; reflectPwLock(); stopPhoneCountdown(); }  // 인증 성공 → 변경 허용 + 세션 수명 카운트다운 종료
-  const banner = document.getElementById('resultBanner');
-  if (!banner) return;
-  banner.innerHTML = success
-    ? '<div class="result-banner success">' + t('authSuccess') + '</div>'
-    : '<div class="result-banner failure">✗ ' + reasonText(reasonCode, reason) + '</div>';
-  // 성공 배너는 PC처럼 그대로 유지, 실패일 때만 잠시 후 입력 초기화
-  if (!success) scheduleReset(1600);
+// ── 인증 결과: 성공 → 청색 배너 3초 → 완료 화면 / 실패 → 적색 배너 3초 → VIK 재입력 ──
+let authResult = null;      // 'ok' | 'fail' (전환 중)
+let completedShown = false; // 인증 완료 화면
+let rescanShown = false;    // 재스캔 안내 화면
+function renderAuthResult() {
+  const kind = authResult === 'ok' ? 'ok' : 'fail';
+  const text = authResult === 'ok' ? t('authSuccess') : t('authFailRetry');
+  document.getElementById('content').innerHTML =
+    '<div class="auth-screen"><div class="auth-banner ' + kind + '">' + text + '</div></div>';
+  setTimeout(fitToScreen, 0);
+}
+function renderCompleted() {
+  document.getElementById('content').innerHTML =
+    '<div class="error-screen"><h2>' + t('completedTitle') + '</h2><p>' + t('completedMsg') + '</p></div>';
+  setTimeout(fitToScreen, 0);
+}
+function renderExpired() {
+  document.getElementById('content').innerHTML =
+    '<div class="error-screen"><h2>' + t('expiredTitle') + '</h2></div>';
+  setTimeout(fitToScreen, 0);
+}
+function renderRescan() {
+  document.getElementById('content').innerHTML =
+    '<div class="error-screen"><h2>' + t('rescanTitle') + '</h2><p>' + t('rescanMsg') + '</p></div>';
+  setTimeout(fitToScreen, 0);
+}
+function showResult(success) {
+  locked = true;
+  if (success) {
+    stopPhoneCountdown();
+    authResult = 'ok'; renderAuthResult();
+    setTimeout(() => { authResult = null; completedShown = true; renderCompleted(); }, 3000);
+  } else {
+    authResult = 'fail'; renderAuthResult();
+    setTimeout(() => { authResult = null; userInput = []; locked = false; renderPadA(); }, 3000);
+  }
+}
+// 제한시간 초과: '세션이 종료되었습니다' 3초 → 재스캔 안내
+function showExpired() {
+  if (expiredShown) return;
+  expiredShown = true; locked = true;
+  stopPhoneCountdown();
+  renderExpired();
+  setTimeout(() => { rescanShown = true; renderRescan(); }, 3000);
 }
 
 // PC/서버에서 결과 통보가 와도 동일 처리 (중복 안전)
 // PC가 1분 무입력으로 새 세션으로 돌아가면 → 이 창에 '재스캔' 안내 표시
-socket.on('session-expired', () => { locked = true; expiredShown = true; stopPhoneCountdown(); showError(t('expiredTitle'), t('expiredMsg')); });
-socket.on('auth-result', ({ success }) => { if (locked) showResult(success); });
+socket.on('session-expired', () => { showExpired(); });
 
 // 인증 성공 후 서버가 자동 재배치한 새 π를 반영(휴대폰 패드는 무표시이므로 내부 상태만 갱신)
 socket.on('pi-updated', ({ pi: newPi }) => { if (newPi) pi = newPi; });

@@ -88,6 +88,7 @@
   .cam-overlay { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; pointer-events: none; }
   .cam-frame { width: 62%; aspect-ratio: 1; border: 3px solid rgba(255,255,255,.9); border-radius: 16px; }
   .cam-hint { margin-top: 18px; color: #fff; font-size: 16px; font-weight: bold; text-shadow: 0 1px 4px rgba(0,0,0,.7); }
+  .cam-notice { max-width: 360px; margin: 6px auto 0; padding: 12px 16px; border-radius: 12px; background: #FEF3C7; border: 1px solid #FCD34D; color: #92400E; font-size: 14px; line-height: 1.6; text-align: center; }
   /* 비밀번호 위치 강조 (시연 보조) */
   .reg-box { background: #F1F5F9; border: 1px solid #E2E8F0; border-radius: 10px; padding: 10px 12px; margin-bottom: 10px; }
   .reg-box .reg-lbl { display: block; font-size: 12px; color: var(--amber-txt); font-weight: bold; margin-bottom: 5px; }
@@ -193,6 +194,7 @@ const I18N = {
     authDoneClose: '✓ 인증 성공<br>창을 닫으세요',
     camHint: 'QR 코드를 비추세요',
     camFail: '카메라를 사용할 수 없습니다. QR 코드를 다시 스캔해 주세요.',
+    camNotice: '특히 카메라 모드는 휴대폰 실제 기기 + HTTPS(Render)에서만 정상 동작합니다(브라우저 카메라 권한 허용 필요). 처음 카메라를 켤 때 권한 요청 팝업이 뜨면 "허용"을 눌러 주세요.',
     reqTitle: 'VTK 데모 로그인 요청',
     locLabel: '접속 위치',
     devLabel: '접속 기기',
@@ -246,6 +248,7 @@ const I18N = {
     authDoneClose: '✓ Authentication successful<br>Please close this window',
     camHint: 'Point the camera at the QR code',
     camFail: 'Camera unavailable. Please scan the QR code again.',
+    camNotice: 'Camera mode works only on a real phone over HTTPS (Render) and requires camera permission in the browser. When the permission prompt appears the first time you turn on the camera, please tap "Allow".',
     reqTitle: 'VTK Demo login request',
     locLabel: 'Location',
     devLabel: 'Device',
@@ -617,9 +620,9 @@ function renderAuthResult() {   // 실패 배너
     '<div class="auth-screen"><div class="auth-banner fail">' + t('authFailRetry') + '</div></div>';
   setTimeout(fitToScreen, 0);
 }
-function renderSuccess() {      // 성공 — 창 닫을 때까지 유지
+function renderSuccess() {      // 성공 — '✓ 인증 성공' 배너 (3초 후 카메라 모드로 전환)
   document.getElementById('content').innerHTML =
-    '<div class="auth-screen"><div class="auth-banner ok">' + t('authDoneClose') + '</div></div>';
+    '<div class="auth-screen"><div class="auth-banner ok">' + t('authSuccess') + '</div></div>';
   setTimeout(fitToScreen, 0);
 }
 function renderExpired() {      // 세션 종료 + 재스캔 안내 (함께)
@@ -631,7 +634,8 @@ function showResult(success) {
   locked = true;
   if (success) {
     stopPhoneCountdown();
-    successShown = true; renderSuccess();   // 창 닫을 때까지 유지
+    successShown = true; renderSuccess();                               // '✓ 인증 성공' 3초 표시
+    setTimeout(() => { if (successShown) startCameraScan(); }, 3000);   // 3초 후 카메라 모드로 전환
   } else {
     authResult = 'fail'; renderAuthResult();
     setTimeout(() => { authResult = null; userInput = []; locked = false; renderPadA(); }, 3000);
@@ -647,8 +651,9 @@ function showExpired() {
 }
 // ── 카메라 스캔 모드 (페이지 내 QR 인식 → 새 세션 페이지로 이동) ──
 async function startCameraScan() {
-  expiredShown = false; cameraShown = true;
+  expiredShown = false; successShown = false; cameraShown = true;
   document.getElementById('content').innerHTML =
+    '<div class="cam-notice">' + t('camNotice') + '</div>' +
     '<div class="cam-wrap"><video id="camVideo" playsinline muted></video>' +
     '<div class="cam-overlay"><div class="cam-frame"></div><div class="cam-hint">' + t('camHint') + '</div></div></div>';
   setTimeout(fitToScreen, 0);

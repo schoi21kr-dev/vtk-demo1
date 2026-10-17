@@ -25,7 +25,7 @@
   .lang-switch button.on { background: var(--amber); border-color: var(--amber); color: var(--navy); }
   .qr-panel { text-align: center; }
   /* QR 1회용 만료 카운트다운 */
-  .qr-ttl { margin: 10px auto 2px; font-size: 14px; font-weight: bold; color: #475569; background: #E5E7EB; border: 1px solid #CBD5E1; border-radius: 999px; padding: 6px 14px; display: inline-block; letter-spacing: .3px; }
+  .qr-ttl { margin: 10px auto 2px; font-size: 18px; font-weight: bold; color: #475569; background: #E5E7EB; border: 1px solid #CBD5E1; border-radius: 999px; padding: 7px 16px; display: inline-block; letter-spacing: .3px; }
   .pw-notice { margin: 12px auto 0; font-size: 20px; color: var(--text-mid); text-align: center; line-height: 1.5; }
   .pw-notice b { color: #B07C3A; letter-spacing: 2px; }
   @keyframes ttlBlink { 0%, 100% { opacity: 1; } 50% { opacity: .25; } }
@@ -33,7 +33,7 @@
   .qr-panel .alt-url { display: none; max-width: 480px; margin: 14px auto 0; }
   .meta b { color: var(--navy); }
   .panel { background: #fff; border-radius: 12px; padding: 24px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); border: 1px solid var(--border); }
-  .panel h2 { font-size: 17px; color: var(--navy); margin-bottom: 16px; padding-bottom: 12px; border-bottom: 2px solid var(--ice); text-align: center; }
+  .panel h2 { font-size: 20px; color: var(--navy); margin-bottom: 16px; padding-bottom: 12px; border-bottom: 2px solid var(--ice); text-align: center; }
   /* 2단계 제목 패널: 밑줄 없이 글자 높이에 맞춘 크기 */
   .panel.title-only { padding: 12px 18px; }
   .panel.title-only h2 { margin-bottom: 0; padding-bottom: 0; border-bottom: none; }
@@ -67,7 +67,7 @@
   .b-cell { aspect-ratio: 1; background: #C4E0F5; border: 2px solid #A6D2F0; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 30px; font-weight: bold; color: var(--blue-dark); }
   .b-cell.empty { background: #F8FAFC; border: 2px dashed var(--border); }
   .pad-wait { text-align: center; color: var(--text-muted); padding: 60px 20px; }
-  .result-banner { margin-top: 16px; padding: 14px 18px; border-radius: 8px; text-align: center; font-weight: bold; font-size: 15px; }
+  .result-banner { margin-top: 16px; padding: 16px 18px; border-radius: 8px; text-align: center; font-weight: bold; font-size: 20px; }
   .result-banner.success { background: var(--green-bg); color: var(--green); }
   .result-banner.failure { background: var(--red-bg); color: var(--red); }
   .log-panel { background: var(--navy-dark); border-radius: 12px; padding: 18px 20px; margin-top: 4px; }
@@ -300,6 +300,7 @@ function showStage2() {
 
 // QR 스캔 후 휴대폰(VIK)에서 입력이 없는 상태가 1분 지속되면 자동으로 새 세션(QR)으로 되돌림
 let idleResetTimer = null;
+let successRenewTimer = null;   // 인증 성공 후 PC를 새 QR 세션으로 전환하는 타이머
 const IDLE_RESET_MS = 60 * 1000;
 function startIdleReset() {
   clearTimeout(idleResetTimer);
@@ -428,13 +429,18 @@ socket.on('pi-updated', ({ pi, auto }) => {
 
 socket.on('auth-result', ({ success }) => {
   lastAuthSuccess = success;
-  if (success) stopQrCountdown();   // 인증 성공 → 세션 수명 카운트다운 종료(VNK 더 이상 사용 불가)
+  if (success) {
+    stopQrCountdown();   // 인증 성공 → 세션 수명 카운트다운 종료(VNK 더 이상 사용 불가)
+    clearTimeout(successRenewTimer);
+    successRenewTimer = setTimeout(() => { renewToQr(); }, 3000);   // 성공 3초 후 PC도 새 QR 세션으로 전환
+  }
   renderResultBanner();
   log('logResult', success ? 'success' : 'warning', success ? t('resultOkWord') : t('resultNgWord'));
 });
 
 // PC를 1단계(QR 창만)로 되돌리고 새 세션·QR 발급
 function renewToQr() {
+  clearTimeout(successRenewTimer);
   stage2Shown = false;
   lastAuthSuccess = null;
   document.getElementById('mainGrid').classList.add('qr-only');

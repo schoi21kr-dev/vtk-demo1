@@ -39,6 +39,7 @@
   .a-cell:active { transform: scale(.94); }
   .a-cell.clicked { transform: scale(.94); }
   .a-cell.empty { background: #F1F5F9; border: 2px dashed #E2E8F0; cursor: default; }
+  .a-cell.back { background: #E8EDF3; border: 2px solid #CBD5E1; color: #334155; font-size: 30px; font-weight: bold; line-height: 1; }
   .controls { display: flex; gap: 10px; margin-top: 10px; }
   .btn { flex: 1; padding: 12px; border: none; border-radius: 10px; font-size: 14px; font-weight: bold; cursor: pointer; font-family: inherit; }
   .btn-secondary { background: #EEF2F7; color: var(--navy); border: 1px solid #CBD5E1; flex: 0.7; }
@@ -441,8 +442,13 @@ function renderPadA() {
   const padA = document.getElementById('padA');
   for (let i = 0; i < 12; i++) {
     const cell = document.createElement('div');
-    if (i === 9 || i === 11) { cell.className = 'a-cell empty'; }
-    else {
+    if (i === 11) {                       // (4,3) 위치: 백스페이스(한 자리 삭제)
+      cell.className = 'a-cell back';
+      cell.innerHTML = '\u2190';
+      cell.onclick = () => handleBackspace(cell);
+    } else if (i === 9) {
+      cell.className = 'a-cell empty';
+    } else {
       cell.className = 'a-cell';
       cell.dataset.index = i;
       cell.innerHTML = '<span class="pt"></span>';
@@ -533,6 +539,16 @@ function handleCellClick(idx, el) {
   setTimeout(() => el.classList.remove('clicked'), 160);
   updateProgress();
   if (userInput.length === pwLen) submitAuth();   // 4자리 완성 → 자동 제출
+}
+
+// 백스페이스: 마지막으로 누른 한 자리를 취소
+function handleBackspace(el) {
+  if (locked || userInput.length === 0) return;
+  cancelScheduledReset();
+  userInput.pop();
+  el.classList.add('clicked');
+  setTimeout(() => el.classList.remove('clicked'), 160);
+  updateProgress();
 }
 
 // 화면 맞춤: 기본 90%로 축소하고, 그래도 넘치면 한 화면에 들어갈 때까지 자동으로 더 축소

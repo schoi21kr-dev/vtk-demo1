@@ -178,7 +178,7 @@ app.get('/api/pair/:sid', async (req, res) => {
   // 1회용 QR 검증: nonce 일치 + 미사용 (시간 만료는 입력 단계 타이머로 이전 — QR 대기 중엔 만료 안 함)
   if (session.nonce && req.query.n !== session.nonce) return res.status(403).json({ error: 'QR이 유효하지 않습니다' });
   if (session.qrUsed) return res.status(409).json({ error: '이미 사용된 QR입니다' });
-  session.qrUsed = true;              // 1회용 소비 (재사용/피싱 방지)
+  // 1회용 소비는 '확인'(confirm-login) 시점으로 이동 — 페이지 중복 로드(프리페치·인앱브라우저·새로고침)에도 페어링 견고
   session.mobileConnected = true;
   session.status = 'waiting_for_mobile_input';
 
@@ -271,7 +271,7 @@ io.on('connection', (socket) => {
   socket.on('join-pc', ({ sid }) => { socket.join(`pc-${sid}`); if (sid) socket.data.pcSid = sid; if (sid && sessions.has(sid)) sessions.get(sid).createdAt = Date.now(); console.log(`[Socket] PC joined ${sid}`); });
   socket.on('join-mobile', ({ sid }) => { socket.join(`mobile-${sid}`); console.log(`[Socket] Mobile joined ${sid}`); });
   // 휴대폰 '확인'(로그인 승인) → PC를 입력 화면으로 전환 (확인 후에만 전환)
-  socket.on('confirm-login', ({ sid }) => { if (sid) io.to(`pc-${sid}`).emit('mobile-paired'); });
+  socket.on('confirm-login', ({ sid }) => { if (sid) { const s = sessions.get(sid); if (s) s.qrUsed = true; io.to(`pc-${sid}`).emit('mobile-paired'); } });
   // 휴대폰 '취소' → PC에 새 QR 재발급 신호
   socket.on('cancel-login', ({ sid }) => { if (sid) io.to(`pc-${sid}`).emit('renew-session'); });
   // 휴대폰 '새 세션(QR 재발급)' 요청 → 해당 세션의 PC에 재발급 신호

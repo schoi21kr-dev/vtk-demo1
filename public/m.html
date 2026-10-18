@@ -349,7 +349,10 @@ async function init() {
   if (!sid) { showError(t('errNoSid'), t('errNoSidMsg')); return; }
   // 새로고침 감지: 같은 세션(sid)을 이 탭에서 다시 열면 → PC는 새 QR 세션, 휴대폰은 카메라(재스캔) 모드
   let reloaded = false;
-  try { const k = 'vtk_seen_' + sid; reloaded = sessionStorage.getItem(k) === '1'; sessionStorage.setItem(k, '1'); } catch (_) {}
+  try {
+    const nav = (performance.getEntriesByType && performance.getEntriesByType('navigation')[0]);
+    reloaded = nav ? (nav.type === 'reload') : (performance.navigation && performance.navigation.type === 1);
+  } catch (_) {}
   if (reloaded) {
     socket.emit('join-mobile', { sid });
     socket.emit('request-new-session', { sid });   // PC를 새 QR 세션으로 전환

@@ -78,6 +78,7 @@
   /* 비밀번호 안내 (확인창 아래) */
   .pw-notice { margin: 14px auto 0; font-size: 18px; color: #64748B; text-align: center; line-height: 1.5; }
   .pw-notice b { color: #B07C3A; letter-spacing: 2px; }
+  .pw-notice-vik { margin: 10px auto 2px; font-size: 16px; }
   /* 인증 결과 배너 (화면 가운데) */
   .auth-screen { display: flex; align-items: center; justify-content: center; min-height: 300px; padding: 30px 18px; }
   .auth-banner { width: 100%; max-width: 360px; padding: 26px 24px; border-radius: 16px; font-size: 20px; font-weight: bold; text-align: center; line-height: 1.5; }
@@ -186,6 +187,7 @@ const I18N = {
     expiredTitle: '세션이 종료되었습니다',
     expiredMsg: '이 창을 닫고 QR 코드를 다시 스캔해 주세요.',
     pwNotice: '현재 비밀번호는 <b>****</b>로 설정되어 있습니다.',
+    pwNoticeShort: '현재 비밀번호 <b>****</b>',
     authFailRetry: '✗ 인증 실패 — 다시 시도하세요',
     completedTitle: '✓ 인증 완료',
     completedMsg: '이 창을 닫으셔도 됩니다.',
@@ -239,6 +241,7 @@ const I18N = {
     expiredTitle: 'Session ended',
     expiredMsg: 'Please close this window and scan the QR code again.',
     pwNotice: 'The current password is set to <b>****</b>.',
+    pwNoticeShort: 'Current password: <b>****</b>',
     authFailRetry: '✗ Authentication failed — please try again',
     completedTitle: '✓ Authentication complete',
     completedMsg: 'You may close this window.',
@@ -299,6 +302,7 @@ function applyLanguage() {
 // 이미 그려진 화면의 문구만 현재 언어로 교체(입력 상태는 유지)
 function redrawTexts() {
   const set = (id, key) => { const el = document.getElementById(id); if (el) el.textContent = t(key); };
+  const pnv = document.getElementById('pwNoticeVik'); if (pnv) pnv.innerHTML = t('pwNoticeShort');
   set('clearBtn', 'btnClear'); set('submitBtn', 'btnSubmit'); set('reshuffleBtn', 'btnReshuffle'); set('newSessionBtn', 'btnNewSession');
   set('pwToggle', 'pwChangeLink'); set('pwApply', 'pwChangeApply');
   const pwNew = document.getElementById('pwNew'); if (pwNew) pwNew.placeholder = t('pwChangePlaceholder');
@@ -442,7 +446,8 @@ function showError(title, msg) {
 function renderPadA() {
   let html = `
     <div class="progress" id="progress"></div>
-    <div class="pad-a" id="padA"></div>`;
+    <div class="pad-a" id="padA"></div>
+    <div class="pw-notice pw-notice-vik" id="pwNoticeVik">${t('pwNoticeShort')}</div>`;
   document.getElementById('content').innerHTML = html;
 
   // 진행 점

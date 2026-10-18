@@ -268,7 +268,7 @@ app.post('/auth/reshuffle', (req, res) => {
 });
 
 io.on('connection', (socket) => {
-  socket.on('join-pc', ({ sid }) => { socket.join(`pc-${sid}`); if (sid && sessions.has(sid)) sessions.get(sid).createdAt = Date.now(); console.log(`[Socket] PC joined ${sid}`); });
+  socket.on('join-pc', ({ sid }) => { socket.join(`pc-${sid}`); if (sid) socket.data.pcSid = sid; if (sid && sessions.has(sid)) sessions.get(sid).createdAt = Date.now(); console.log(`[Socket] PC joined ${sid}`); });
   socket.on('join-mobile', ({ sid }) => { socket.join(`mobile-${sid}`); console.log(`[Socket] Mobile joined ${sid}`); });
   // 휴대폰 '확인'(로그인 승인) → PC를 입력 화면으로 전환 (확인 후에만 전환)
   socket.on('confirm-login', ({ sid }) => { if (sid) io.to(`pc-${sid}`).emit('mobile-paired'); });
@@ -299,6 +299,19 @@ io.on('connection', (socket) => {
       io.to(`pc-${sid}`).emit('set-lang', { lang });
       io.to(`mobile-${sid}`).emit('set-lang', { lang });
     }
+  });
+  // PC 연결 종료(새로고침·창 닫기·네트워크 종료) → 2초 후에도 PC가 그 세션으로 복귀하지 않으면
+  // 해당 세션의 휴대폰을 '세션 종료 → 카메라(재스캔)' 모드로 전환 (일시적 끊김에는 반응하지 않음)
+  socket.on('disconnect', () => {
+    const psid = socket.data && socket.data.pcSid;
+    if (!psid) return;
+    setTimeout(() => {
+      const room = io.sockets.adapter.rooms.get(`pc-${psid}`);
+      if (!room || room.size === 0) {
+        io.to(`mobile-${psid}`).emit('session-expired');
+        console.log(`[Socket] PC 연결 종료 → 휴대폰(${psid}) 재스캔(카메라) 전환`);
+      }
+    }, 2000);
   });
 });
 

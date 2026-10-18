@@ -24,8 +24,6 @@
   .badge.live { background: rgba(22,101,52,0.14); color: var(--green); }
   .instruction { background: rgba(212,165,116,0.12); border-left: 3px solid var(--amber); padding: 9px 14px; border-radius: 6px; margin-bottom: 12px; font-size: 12px; color: var(--amber-txt); line-height: 1.6; }
   /* 체험용 비밀번호 안내 박스 (데모1과 동일 위치·크기) */
-  .demo-hint { background: rgba(212,165,116,0.12); border: 1px solid rgba(212,165,116,0.5); padding: 13px 18px; border-radius: 10px; margin-bottom: 14px; font-size: 14px; color: #475569; line-height: 1.6; text-align: center; }
-  .demo-hint b { letter-spacing: 2px; font-size: 16px; color: #B07C3A; }
   .loading { text-align: center; padding: 40px 20px; color: var(--text-muted); }
   .spinner { border: 3px solid rgba(30,41,59,0.1); border-top: 3px solid var(--amber); border-radius: 50%; width: 36px; height: 36px; animation: spin 1s linear infinite; margin: 0 auto 16px; }
   @keyframes spin { 100% { transform: rotate(360deg); } }
@@ -40,22 +38,10 @@
   .a-cell.clicked { transform: scale(.94); }
   .a-cell.empty { background: #F1F5F9; border: 2px dashed #E2E8F0; cursor: default; }
   .a-cell.back { background: #E8EDF3; border: 2px solid #CBD5E1; color: #334155; font-size: 30px; font-weight: bold; line-height: 1; }
-  .controls { display: flex; gap: 10px; margin-top: 10px; }
   .btn { flex: 1; padding: 12px; border: none; border-radius: 10px; font-size: 14px; font-weight: bold; cursor: pointer; font-family: inherit; }
   .btn-secondary { background: #EEF2F7; color: var(--navy); border: 1px solid #CBD5E1; flex: 0.7; }
   .btn-primary { background: var(--amber); color: var(--navy-dark); }
   .btn-primary:disabled { opacity: 0.45; cursor: default; }
-  .btn-reshuffle { width: 100%; margin-top: 8px; padding: 11px; border: 1px solid #CBD5E1; border-radius: 10px; background: #EEF2F7; color: var(--navy); font-size: 14px; font-weight: bold; cursor: pointer; font-family: inherit; }
-  .btn-reshuffle:active { transform: scale(.98); }
-  .btn-reshuffle:disabled { opacity: 0.5; cursor: default; }
-  .session-row { display: flex; gap: 8px; margin-top: 8px; }
-  .session-row .btn-reshuffle { flex: 1; width: auto; margin-top: 0; }
-  .result-banner { margin-top: 10px; padding: 11px 16px; border-radius: 8px; text-align: center; font-weight: bold; font-size: 14px; }
-  .result-banner.success { background: var(--green-bg); color: var(--green); }
-  .result-banner.failure { background: var(--red-bg); color: var(--red); }
-  .result-banner.prompt { background: var(--green-bg); color: #1F2937; }
-  .channel-info { background: #F1F5F9; padding: 12px 16px; border-radius: 8px; font-family: 'Consolas', monospace; font-size: 11px; color: var(--text-muted); margin-top: 16px; line-height: 1.6; word-break: break-all; }
-  .channel-info .label { color: var(--amber-txt); font-weight: bold; }
   .error-screen { text-align: center; padding: 40px 20px; color: var(--text-muted); }
   .error-screen h2 { color: var(--navy); margin-bottom: 16px; }
   .error-screen p { font-size: 14px; line-height: 1.7; }
@@ -90,23 +76,6 @@
   .cam-overlay { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; pointer-events: none; }
   .cam-frame { width: 62%; aspect-ratio: 1; border: 3px solid rgba(255,255,255,.9); border-radius: 16px; }
   .cam-hint { margin-top: 18px; color: #fff; font-size: 16px; font-weight: bold; text-shadow: 0 1px 4px rgba(0,0,0,.7); }
-  /* 비밀번호 위치 강조 (시연 보조) */
-  .reg-box { background: #F1F5F9; border: 1px solid #E2E8F0; border-radius: 10px; padding: 10px 12px; margin-bottom: 10px; }
-  .reg-box .reg-lbl { display: block; font-size: 12px; color: var(--amber-txt); font-weight: bold; margin-bottom: 5px; }
-  .reg-box input { width: 100%; padding: 8px 12px; margin-bottom: 8px; border: 1px solid #CBD5E1; border-radius: 8px; background: #fff; color: #1F2937; font-size: 15px; font-family: 'Consolas', monospace; text-align: center; letter-spacing: 3px; }
-  /* 비밀번호 표시: 진행 점(.dot)과 동일한 요소를 입력창 위에 겹쳐 표시 → 크기·색상·간격 동일 */
-  .reg-box input:last-child { margin-bottom: 0; }
-  .pw-change { margin-top: 14px; text-align: center; }
-  .pw-toggle { color: #64748B; font-size: 12px; text-decoration: none; border-bottom: 1px dotted #94A3B8; }
-  .pw-toggle:active { color: var(--navy); }
-  .pw-panel { display: flex; gap: 8px; margin-top: 10px; }
-  .pw-panel input { flex: 1; padding: 8px 12px; border: 1px solid #CBD5E1; border-radius: 8px; background: #fff; color: #1F2937; font-size: 15px; font-family: 'Consolas', monospace; text-align: center; letter-spacing: 3px; }
-  .pw-panel .btn { flex: 0 0 auto; margin: 0; padding: 8px 16px; }
-  .pw-msg { font-size: 12px; margin-top: 8px; min-height: 14px; }
-  .pw-msg.ok { color: var(--green); }
-  .pw-msg.ng { color: var(--red); }
-  .a-cell { position: relative; }
-  .cell-num { position: absolute; top: -6px; right: -6px; min-width: 18px; height: 18px; padding: 0 4px; background: #B45309; color: #fff; border-radius: 9px; font-size: 11px; font-weight: bold; display: flex; align-items: center; justify-content: center; box-shadow: 0 1px 3px rgba(0,0,0,0.4); pointer-events: none; }
 </style>
 </head>
 <body>
@@ -135,7 +104,6 @@ const nonce = getNonce();
 const socket = io();
 let expiredShown = false;                // 세션 종료 안내창 표시 여부
 let confirmShown = false;                // QR 스캔 직후 확인 화면 표시 여부
-let cancelledShown = false;              // 로그인 요청 취소 안내 표시 여부
 let pairData = null;                     // /api/pair 응답(확인 화면 재렌더용)
 let pwLen = 4;
 let userInput = [];
@@ -144,7 +112,6 @@ let pi = null;          // 강조 계산용 순열
 let password = null;    // 사용자가 입력한 비밀번호(등록 전송용)
 const DEFAULT_PASSWORD = '2468';  // 기본 비밀번호(고정)
 let activePassword = DEFAULT_PASSWORD;  // 이번 세션에서 사용할 비밀번호(저장하지 않음)
-let pwChangeUnlocked = false;  // 인증 성공 1회 후에만 비밀번호 변경 허용
 let highlightOn = false; // 위치 강조 기능 제거(항상 꺼짐)
 
 // 격자 매핑: 숫자 d는 셀 numericIndices[pi[d]] 에 위치 (server.js와 동일 규칙)
@@ -155,27 +122,14 @@ const POS_LABEL = {
   6: '좌하단', 7: '하단', 8: '우하단',
   10: '최하단'
 };
-function cellOfDigit(d) { return NUMERIC_INDICES[pi[d]]; }
 
 // ─────────── 다국어 사전 (화면 문구는 모두 여기서 관리) ───────────
 const I18N = {
   ko: {
     headerSub: 'Channel \u2461 · Mobile · VIK (무표시)',
-    demoHint: '체험용 비밀번호는 <b>1357</b>입니다. PC 화면의 숫자판(VNK)에서 1·3·5·7의 위치를 확인한 뒤, 아래 입력판에서 같은 자리를 순서대로 터치하세요.',
     connecting: '서버에 연결 중...',
     statusLive: '● LIVE · PC와 동기화됨',
-    labelUserId: '사용자 ID',
-    btnClear: '↺ 다시 입력',
-    btnSubmit: '인증 제출',
-    btnReshuffle: '🎲 VNK 재배치',
-    btnNewSession: '🔄 새 세션 (QR 재발급)',
-    newSessionAsked: '🔄 PC에 새 QR이 발급되었습니다 — 새 QR을 다시 스캔하세요',
-    pwChangeLink: '⚙ 비밀번호 변경',
-    pwChangePlaceholder: '새 비밀번호 4자리',
-    pwChangeApply: '적용',
-    pwInvalid: '✗ 숫자 4자리를 입력하세요',
     promptEnter: '비밀번호를 입력하세요.',
-    needInput: '✗ 사용자 ID를 입력하세요',
     regFailed: '✗ 등록 실패 — 입력을 확인하세요',
     sendError: '✗ 전송 오류 — 다시 시도하세요',
     authSuccess: '✓ 인증 성공',
@@ -189,10 +143,7 @@ const I18N = {
     pwNotice: '현재 비밀번호는 <b>****</b>로 설정되어 있습니다.',
     pwNoticeShort: '현재 비밀번호 <b>****</b>',
     authFailRetry: '✗ 인증 실패 — 다시 시도하세요',
-    completedTitle: '✓ 인증 완료',
-    completedMsg: '이 창을 닫으셔도 됩니다.',
     rescanTitle: 'QR 코드를 다시 스캔해 주세요',
-    rescanMsg: 'PC에 새 QR이 표시되었습니다.',
     authDoneClose: '✓ 인증 성공<br>창을 닫으세요',
     camHint: 'QR 코드를 비추세요',
     camFail: '카메라를 사용할 수 없습니다. QR 코드를 다시 스캔해 주세요.',
@@ -203,8 +154,6 @@ const I18N = {
     confirmWarn: '⚠ 지금 사용 중인 PC와 다르면 진행하지 마세요.',
     btnCancelLogin: '취소',
     btnConfirmLogin: '확인',
-    cancelledTitle: '로그인 요청을 취소했습니다',
-    cancelledMsg: '이 창을 닫으세요. PC에는 새 QR이 발급됩니다.',
     locUnknown: '알 수 없음',
     errConn: '연결 오류',
     errReshuffle: '재배치 실패',
@@ -215,21 +164,9 @@ const I18N = {
   },
   en: {
     headerSub: 'Channel \u2461 · Mobile · VIK (blank)',
-    demoHint: 'The demo password is <b>1357</b>. Find where 1, 3, 5 and 7 are on the numbered keypad (VNK) on your PC, then touch those same positions in order on the input keypad below.',
     connecting: 'Connecting to the server...',
     statusLive: '● LIVE · synced with PC',
-    labelUserId: 'User ID',
-    btnClear: '↺ Clear',
-    btnSubmit: 'Submit',
-    btnReshuffle: '🎲 Reshuffle VNK',
-    btnNewSession: '🔄 New session (reissue QR)',
-    newSessionAsked: '🔄 A new QR has been issued on the PC — scan the new QR again',
-    pwChangeLink: '⚙ Change password',
-    pwChangePlaceholder: 'New 4-digit password',
-    pwChangeApply: 'Apply',
-    pwInvalid: '✗ Enter exactly 4 digits',
     promptEnter: 'Enter your password.',
-    needInput: '✗ Enter your user ID',
     regFailed: '✗ Registration failed — please check your input',
     sendError: '✗ Transmission error — please try again',
     authSuccess: '✓ Authentication successful',
@@ -243,10 +180,7 @@ const I18N = {
     pwNotice: 'The current password is set to <b>****</b>.',
     pwNoticeShort: 'Current password: <b>****</b>',
     authFailRetry: '✗ Authentication failed — please try again',
-    completedTitle: '✓ Authentication complete',
-    completedMsg: 'You may close this window.',
     rescanTitle: 'Please scan the QR code again',
-    rescanMsg: 'A new QR code is shown on the PC.',
     authDoneClose: '✓ Authentication successful<br>Please close this window',
     camHint: 'Point the camera at the QR code',
     camFail: 'Camera unavailable. Please scan the QR code again.',
@@ -257,8 +191,6 @@ const I18N = {
     confirmWarn: '⚠ If this is not the PC you are using right now, do not proceed.',
     btnCancelLogin: 'Cancel',
     btnConfirmLogin: 'Confirm',
-    cancelledTitle: 'Login request cancelled',
-    cancelledMsg: 'Please close this window. A new QR has been issued on the PC.',
     locUnknown: 'Unknown',
     errConn: 'Connection error',
     errReshuffle: 'Reshuffle failed',
@@ -281,7 +213,6 @@ function reasonText(code, fallback) {
   return map[code] ? t(map[code]) : (fallback || t('authFailure'));
 }
 
-let lastResult = null;   // {success, reasonCode} — 언어 전환 시 다시 그리기 위해 보관
 function applyLanguage() {
   document.documentElement.lang = LANG;
   document.querySelectorAll('[data-i18n]').forEach(el => { el.textContent = t(el.dataset.i18n); });
@@ -295,19 +226,12 @@ function applyLanguage() {
   if (authResult) { renderAuthResult(); return; }                               // 실패 배너
   if (expiredShown) { renderExpired(); return; }                                // 세션 종료 안내
   if (confirmShown) { showConfirm(pairData && pairData.accessInfo); return; }    // 확인 화면: 현재 언어로 재표시
-  if (cancelledShown) { showCancelled(); return; }                              // 취소 안내: 현재 언어로 재표시
   if (document.getElementById('padA')) redrawTexts();
 }
 
 // 이미 그려진 화면의 문구만 현재 언어로 교체(입력 상태는 유지)
 function redrawTexts() {
-  const set = (id, key) => { const el = document.getElementById(id); if (el) el.textContent = t(key); };
   const pnv = document.getElementById('pwNoticeVik'); if (pnv) pnv.innerHTML = t('pwNoticeShort');
-  set('clearBtn', 'btnClear'); set('submitBtn', 'btnSubmit'); set('reshuffleBtn', 'btnReshuffle'); set('newSessionBtn', 'btnNewSession');
-  set('pwToggle', 'pwChangeLink'); set('pwApply', 'pwChangeApply');
-  const pwNew = document.getElementById('pwNew'); if (pwNew) pwNew.placeholder = t('pwChangePlaceholder');
-  const lbls = document.querySelectorAll('.reg-box .reg-lbl');
-  if (lbls[0]) lbls[0].textContent = t('labelUserId');
   showPrompt();
 }
 
@@ -429,15 +353,6 @@ function cancelLogin() {
   socket.emit('cancel-login', { sid });   // PC는 새 QR 세션으로 전환
   startCameraScan();                        // 휴대폰은 카메라 모드로 전환
 }
-function showCancelled() {
-  cancelledShown = true;
-  document.getElementById('content').innerHTML = `
-    <div class="error-screen">
-      <h2>${t('cancelledTitle')}</h2>
-      <p>${t('cancelledMsg')}</p>
-    </div>`;
-  setTimeout(fitToScreen, 0);
-}
 
 function showError(title, msg) {
   document.getElementById('content').innerHTML = `<div class="error-screen"><h2>${title}</h2><p>${msg}</p></div>`;
@@ -475,75 +390,6 @@ function renderPadA() {
 
   setTimeout(fitToScreen, 0);
   showPrompt();
-}
-
-// 인증 성공 여부에 따라 비밀번호 변경 링크 잠금/해제 표시
-function reflectPwLock() {
-  const box = document.getElementById('pwChange');
-  if (!box) return;
-  box.style.display = pwChangeUnlocked ? 'block' : 'none';  // 인증 성공 전에는 숨김
-  if (!pwChangeUnlocked) {
-    const panel = document.getElementById('pwPanel');
-    if (panel) panel.style.display = 'none';
-  }
-}
-
-function applyPasswordChange() {
-  const el = document.getElementById('pwNew');
-  const msg = document.getElementById('pwMsg');
-  const v = el.value.trim();
-  if (!/^\d{4}$/.test(v)) {
-    msg.className = 'pw-msg ng';
-    msg.textContent = t('pwInvalid');
-    return;
-  }
-  activePassword = v;          // 이번 세션에만 반영(새로고침·새 QR이면 기본값으로 돌아감)
-  resetInput();                // 입력 중이던 좌표 초기화
-  el.value = '';
-  document.getElementById('pwPanel').style.display = 'none';
-  msg.className = 'pw-msg';
-  msg.textContent = '';        // 성공 문구 표시 안 함
-}
-
-// 숫자판 재배치: 현재 세션의 π만 새로 생성(세션·QR 유지). PC 숫자판 B가 갱신됨.
-// 휴대폰 '새 세션(QR 재발급)' 요청 → 서버가 PC에 renew-session 전달 → PC가 새 QR 발급
-function phoneNewSession() {
-  socket.emit('request-new-session', { sid });
-  const b = document.getElementById('resultBanner');
-  if (b) b.innerHTML = '<div class="result-banner prompt">' + t('newSessionAsked') + '</div>';
-}
-
-async function reshuffle() {
-  const btn = document.getElementById('reshuffleBtn');
-  btn.disabled = true;
-  try {
-    const res = await fetch('/auth/reshuffle', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ sid })
-    });
-    const data = await res.json();
-    if (!res.ok || !data.ok) { alert(t('errReshuffle')); btn.disabled = false; return; }
-    pi = data.pi || pi;
-    if (data.password != null) password = String(data.password);
-    resetInput();       // 입력 초기화
-    applyHighlight();   // 강조 켜져 있으면 새 배치로 재계산
-  } catch (err) {
-    alert(t('errPrefix') + err.message);
-  } finally {
-    btn.disabled = false;
-  }
-}
-
-// 위치 강조 기능은 제거됨(항상 꺼짐). 남은 표시 영역만 비워 둔다.
-function applyHighlight() {
-  const hlArea = document.getElementById('hlArea');
-  const posList = document.getElementById('posList');
-  document.querySelectorAll('.a-cell').forEach(c => {
-    c.classList.remove('hl');
-    const b = c.querySelector('.cell-num'); if (b) b.remove();
-  });
-  if (hlArea) hlArea.innerHTML = '';
-  if (posList) posList.innerHTML = '';
 }
 
 function handleCellClick(idx, el) {
@@ -595,17 +441,12 @@ function showPrompt() {
 
 // 예약된 초기화 타이머(성공·실패 후 1.6초). 사용자가 먼저 새 입력을 시작하면 취소해야 한다.
 let resetTimer = null;
-function scheduleReset(ms) {
-  if (resetTimer) clearTimeout(resetTimer);
-  resetTimer = setTimeout(() => { resetTimer = null; resetInput(); }, ms);
-}
 function cancelScheduledReset() {
   if (resetTimer) { clearTimeout(resetTimer); resetTimer = null; }
 }
 
 function resetInput() {
   cancelScheduledReset();
-  lastResult = null;
   userInput = []; locked = false;
   updateProgress();
   showPrompt();
@@ -613,10 +454,6 @@ function resetInput() {
 
 function getPassword() {
   return activePassword;   // 이번 세션의 비밀번호(기본 2468)
-}
-function getUserId() {
-  const el = document.getElementById('userIdInput');
-  return el ? el.value.trim() : 'demo-user';   // 사용자 ID 입력창 제거 → 기본값 사용
 }
 
 async function submitAuth() {

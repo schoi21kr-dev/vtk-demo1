@@ -26,8 +26,6 @@
   .qr-panel { text-align: center; }
   /* QR 1회용 만료 카운트다운 */
   .qr-ttl { margin: 10px auto 2px; font-size: 18px; font-weight: bold; color: #475569; background: #E5E7EB; border: 1px solid #CBD5E1; border-radius: 999px; padding: 7px 16px; display: inline-block; letter-spacing: .3px; }
-  .pw-notice { margin: 12px auto 0; font-size: 20px; color: var(--text-mid); text-align: center; line-height: 1.5; }
-  .pw-notice b { color: #B07C3A; letter-spacing: 2px; }
   @keyframes ttlBlink { 0%, 100% { opacity: 1; } 50% { opacity: .25; } }
   .qr-ttl.ending { color: var(--red); background: var(--red-bg); border-color: rgba(153,27,27,.4); animation: ttlBlink 2s ease-in-out infinite; }
   .qr-panel .alt-url { display: none; max-width: 480px; margin: 14px auto 0; }
@@ -159,7 +157,6 @@ let currentPi = null;   // 서버가 발급한 실제 π (스캔 시 VTK 배치�
 const I18N = {
   ko: {
     appTitle: 'VTK 데모 1',
-    pwNotice: '현재 비밀번호는 <b>****</b>로 설정되어 있습니다.',
     stage1Title: '1단계',
     qrHeading: '\u2460 휴대폰으로 QR 코드 스캔',
     qrLoading: 'QR 코드 로딩 중…',
@@ -191,7 +188,6 @@ const I18N = {
   },
   en: {
     appTitle: 'VTK Demo 1',
-    pwNotice: 'The current password is set to <b>****</b>.',
     stage1Title: 'Step 1',
     qrHeading: '\u2460 Scan the QR Code with Your Phone',
     qrLoading: 'Loading QR code…',

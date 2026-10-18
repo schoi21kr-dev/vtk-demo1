@@ -20,6 +20,9 @@
   .lang-switch { display: flex; gap: 5px; justify-content: center; margin-top: 8px; }
   .lang-switch button { padding: 5px 14px; border: 1px solid #CBD5E1; background: transparent; color: #475569; border-radius: 6px; font-size: 17px; font-weight: bold; cursor: pointer; font-family: inherit; letter-spacing: 1px; }
   .lang-switch button.on { background: var(--amber); border-color: var(--amber); color: var(--navy-dark); }
+  .lang-switch .hub-btn { margin-left: 8px; display: inline-flex; align-items: center; justify-content: center; padding: 4px 11px; border-color: var(--amber); color: var(--amber-txt); }
+  .lang-switch .hub-btn svg { display: block; }
+  .lang-switch .hub-btn:active { background: var(--amber); color: var(--navy-dark); }
   .badge { display: inline-block; margin-top: 8px; background: rgba(212,165,116,0.2); color: var(--amber-txt); padding: 4px 12px; border-radius: 12px; font-size: 11px; letter-spacing: 1px; }
   .badge.live { background: rgba(22,101,52,0.14); color: var(--green); }
   .instruction { background: rgba(212,165,116,0.12); border-left: 3px solid var(--amber); padding: 9px 14px; border-radius: 6px; margin-bottom: 12px; font-size: 12px; color: var(--amber-txt); line-height: 1.6; }
@@ -81,7 +84,7 @@
 <body>
 <div class="phone-frame">
   <div class="header">
-    <div class="lang-switch"><button id="langKo" class="on">KO</button><button id="langEn">EN</button></div>
+    <div class="lang-switch"><button id="langKo" class="on">KO</button><button id="langEn">EN</button><button id="btnHub" class="hub-btn" title="허브" aria-label="허브"><svg viewBox="0 0 24 24" width="17" height="17" aria-hidden="true"><path fill="currentColor" d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg></button></div>
   </div>
   <div id="content">
     <div class="loading"><div class="spinner"></div><p data-i18n="connecting">서버에 연결 중...</p></div>
@@ -572,6 +575,7 @@ socket.on('pi-updated', ({ pi: newPi }) => { if (newPi) pi = newPi; });
 socket.on('set-lang', ({ lang }) => setLanguage(lang));
 document.getElementById('langKo').onclick = () => { setLanguage('ko'); socket.emit('set-lang', { sid: sid, lang: 'ko' }); };
 document.getElementById('langEn').onclick = () => { setLanguage('en'); socket.emit('set-lang', { sid: sid, lang: 'en' }); };
+document.getElementById('btnHub').onclick = () => { location.href = '/hub?lang=' + LANG; };   // 집(홈) 아이콘 → 허브로 이동
 applyLanguage();
 init();
 </script>

@@ -23,6 +23,9 @@
   .lang-switch { display: flex; gap: 4px; }
   .lang-switch button { padding: 5px 12px; border: 1px solid rgba(255,255,255,0.35); background: transparent; color: #fff; border-radius: 6px; font-size: 14.4px; font-weight: bold; cursor: pointer; font-family: inherit; letter-spacing: 1px; }
   .lang-switch button.on { background: var(--amber); border-color: var(--amber); color: var(--navy); }
+  .lang-switch .hub-btn { margin-left: 8px; display: inline-flex; align-items: center; justify-content: center; padding: 4px 10px; border-color: var(--amber); color: var(--amber); }
+  .lang-switch .hub-btn svg { display: block; }
+  .lang-switch .hub-btn:hover { background: var(--amber); color: var(--navy); }
   .qr-panel { text-align: center; }
   /* QR 1회용 만료 카운트다운 */
   .qr-ttl { margin: 10px auto 2px; font-size: 18px; font-weight: bold; color: #475569; background: #E5E7EB; border: 1px solid #CBD5E1; border-radius: 999px; padding: 7px 16px; display: inline-block; letter-spacing: .3px; }
@@ -118,7 +121,7 @@
   <div class="header">
     <h1 data-i18n="appTitle">VTK 데모 1</h1>
     <div class="header-right">
-      <div class="lang-switch"><button id="langKo" class="on">KO</button><button id="langEn">EN</button></div>
+      <div class="lang-switch"><button id="langKo" class="on">KO</button><button id="langEn">EN</button><button id="btnHub" class="hub-btn" title="허브" aria-label="허브"><svg viewBox="0 0 24 24" width="17" height="17" aria-hidden="true"><path fill="currentColor" d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg></button></div>
     </div>
   </div>
 
@@ -511,6 +514,7 @@ socket.on('renew-session', () => { renewToQr(); });
 socket.on('set-lang', ({ lang }) => setLanguage(lang));
 document.getElementById('langKo').onclick = () => { setLanguage('ko'); socket.emit('set-lang', { sid: currentSid, lang: 'ko' }); };
 document.getElementById('langEn').onclick = () => { setLanguage('en'); socket.emit('set-lang', { sid: currentSid, lang: 'en' }); };
+document.getElementById('btnHub').onclick = () => { location.href = '/hub?lang=' + LANG; };   // 집(홈) 아이콘 → 허브로 이동
 
 // 서버 재시작 등으로 소켓이 끊겼다 다시 연결되면: 세션이 살아있으면 방에 재합류,
 // 사라졌으면 자동으로 새 세션·QR을 재발급 → 화면의 QR이 항상 유효하게 유지됨

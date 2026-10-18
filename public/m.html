@@ -409,10 +409,9 @@ function confirmLogin() {
 // 취소 → PC는 새 QR 재발급(서버가 pc-sid에 renew-session 중계), 휴대폰은 취소 안내
 function cancelLogin() {
   confirmShown = false;
-  cancelledShown = true;
   stopPhoneCountdown();
-  socket.emit('cancel-login', { sid });
-  showCancelled();
+  socket.emit('cancel-login', { sid });   // PC는 새 QR 세션으로 전환
+  startCameraScan();                        // 휴대폰은 카메라 모드로 전환
 }
 function showCancelled() {
   cancelledShown = true;
@@ -711,6 +710,12 @@ function stopCamera() {
 // PC/서버에서 결과 통보가 와도 동일 처리 (중복 안전)
 // PC가 1분 무입력으로 새 세션으로 돌아가면 → 이 창에 '재스캔' 안내 표시
 socket.on('session-expired', () => { showExpired(); });
+
+// QR 스캔 이후 진행 중(확인·입력 단계)에 창을 닫거나 벗어나면 PC를 새 QR 세션으로 되돌린다
+window.addEventListener('pagehide', () => {
+  if (cameraShown || successShown || expiredShown || cancelledShown) return;  // 정상 전환/종료 상태는 제외
+  try { if (sid) socket.emit('cancel-login', { sid }); } catch (_) {}
+});
 
 // 인증 성공 후 서버가 자동 재배치한 새 π를 반영(휴대폰 패드는 무표시이므로 내부 상태만 갱신)
 socket.on('pi-updated', ({ pi: newPi }) => { if (newPi) pi = newPi; });

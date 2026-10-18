@@ -162,6 +162,8 @@ let currentPi = null;   // 서버가 발급한 실제 π (스캔 시 VTK 배치�
 // 허브(런처)에서 전환되어 온 경우(?h=): 첫 세션은 QR 대신 '연결됨'을 표시하고 휴대폰을 바로 인증 화면으로 보낸다
 const HUB_ID = new URLSearchParams(location.search).get('h') || null;
 let hubFirst = !!HUB_ID;
+// 허브 진입 흔적(h)을 주소에서 제거 → PC 새로고침 시 허브 대기화면으로 재진입하지 않고 일반 QR 세션으로 열림
+if (HUB_ID) { try { const _u = new URL(location.href); _u.searchParams.delete('h'); history.replaceState(null, '', _u); } catch (_) {} }
 let hubConnectedShown = false;
 let successShownPC = false;
 

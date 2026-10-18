@@ -68,6 +68,10 @@
   .result-banner { margin-top: 16px; padding: 16px 18px; border-radius: 8px; text-align: center; font-weight: bold; font-size: 20px; }
   .result-banner.success { background: var(--green-bg); color: var(--green); }
   .result-banner.failure { background: var(--red-bg); color: var(--red); }
+  /* 인증 성공 화면 (휴대폰과 동일한 모습) */
+  .auth-screen { display: flex; align-items: center; justify-content: center; min-height: 360px; padding: 30px 18px; }
+  .auth-banner { width: 100%; max-width: 420px; padding: 34px 28px; border-radius: 16px; font-size: 28px; font-weight: bold; text-align: center; line-height: 1.5; }
+  .auth-banner.ok { background: #1D4ED8; color: #fff; }
   .log-panel { background: var(--navy-dark); border-radius: 12px; padding: 18px 20px; margin-top: 4px; }
   .log-title { color: var(--amber-bright); font-size: 13px; font-weight: bold; letter-spacing: 1px; margin-bottom: 10px; font-family: 'Consolas', monospace; }
   .log-box { font-family: 'Consolas', monospace; font-size: 12px; line-height: 1.9; max-height: 200px; overflow-y: auto; }
@@ -130,12 +134,16 @@
 
     <!-- VNK 숫자표시 (스캔 후 표시) -->
     <div id="stage2" style="display:none;">
-      <div class="panel">
-        <h2 data-i18n="padBHeading">&#9313; VNK &middot; 숫자표시 (PC)</h2>
-        <div id="padArea"><div class="pad-wait" data-i18n-html="padWait">인증 세션을 시작하면<br>VNK가 표시됩니다.</div></div>
-        <div style="text-align:center;"><div class="qr-ttl" id="qrTtl2" style="display:none;"></div></div>
+      <div id="pcKeypadView">
+        <div class="panel">
+          <h2 data-i18n="padBHeading">&#9313; VNK &middot; 숫자표시 (PC)</h2>
+          <div id="padArea"><div class="pad-wait" data-i18n-html="padWait">인증 세션을 시작하면<br>VNK가 표시됩니다.</div></div>
+          <div style="text-align:center;"><div class="qr-ttl" id="qrTtl2" style="display:none;"></div></div>
+        </div>
+        <div id="resultBanner" style="margin-top:16px;"></div>
       </div>
-      <div id="resultBanner" style="margin-top:16px;"></div>
+      <!-- 인증 성공 시: 휴대폰과 동일한 성공 화면만 표시(키패드 숨김) -->
+      <div id="pcSuccessView" style="display:none;"></div>
       <!-- 로그(logBox)는 화면에서 제거됨. JS 오류 방지용 숨김 노드만 유지 -->
       <div id="logBox" style="display:none;"></div>
     </div>
@@ -155,6 +163,7 @@ let currentPi = null;   // 서버가 발급한 실제 π (스캔 시 VTK 배치�
 const HUB_ID = new URLSearchParams(location.search).get('h') || null;
 let hubFirst = !!HUB_ID;
 let hubConnectedShown = false;
+let successShownPC = false;
 
 
 // ─────────── 다국어 사전 (화면 문구는 모두 여기서 관리) ───────────
@@ -251,6 +260,7 @@ function applyLanguage() {
   }
   renderLog();
   renderResultBanner();
+  if (successShownPC) renderPcSuccessBanner();
   if (hubConnectedShown) showHubConnected(); else if (currentMobileUrl) renderQr(currentMobileUrl);
 }
 
@@ -297,6 +307,9 @@ function renderResultBanner() {
 function showStage2() {
   stage2Shown = true;
   hubConnectedShown = false;
+  successShownPC = false;
+  const _kv = document.getElementById('pcKeypadView'); if (_kv) _kv.style.display = '';
+  const _sv = document.getElementById('pcSuccessView'); if (_sv) { _sv.style.display = 'none'; _sv.innerHTML = ''; }
   document.getElementById('stage1').style.display = 'none';   // QR 창 제거
   document.getElementById('stage2').style.display = '';
   // 세션 전체 1분 수명 카운트다운이 만료를 관장하므로 별도 idle 타이머는 사용하지 않음
@@ -443,7 +456,7 @@ socket.on('user-registered', ({ userId }) => {
 
 // 새 π 수신 → 숫자판 B 갱신 (인증 성공 후 자동 재배치 / 휴대폰의 수동 재배치)
 socket.on('pi-updated', ({ pi, auto }) => {
-  renderPadB(pi);
+  if (!successShownPC) renderPadB(pi);   // 성공 화면 표시 중에는 키패드 재배치를 숨김 유지
   log(auto ? 'logAutoReshuffle' : 'logManualReshuffle', 'system');
 });
 
@@ -452,17 +465,37 @@ socket.on('auth-result', ({ success }) => {
   if (success) {
     stopQrCountdown();   // 인증 성공 → 세션 수명 카운트다운 종료(VNK 더 이상 사용 불가)
     clearTimeout(successRenewTimer);
+    showPcSuccess();     // 휴대폰과 동일한 '인증 성공' 화면 표시(변경된 VNK 키패드는 숨김)
     successRenewTimer = setTimeout(() => { renewToQr(); }, 3000);   // 성공 3초 후 PC도 새 QR 세션으로 전환
+  } else {
+    renderResultBanner();
   }
-  renderResultBanner();
   log('logResult', success ? 'success' : 'warning', success ? t('resultOkWord') : t('resultNgWord'));
 });
+
+// 인증 성공 시: 휴대폰과 동일하게 '인증 성공' 화면만 표시 (변경된 VNK 키패드는 숨김)
+function renderPcSuccessBanner() {
+  const v = document.getElementById('pcSuccessView');
+  if (v) v.innerHTML = '<div class="auth-screen"><div class="auth-banner ok">' + t('bannerSuccess') + '</div></div>';
+}
+function showPcSuccess() {
+  successShownPC = true;
+  stopQrCountdown();
+  document.getElementById('stage1').style.display = 'none';
+  document.getElementById('stage2').style.display = '';
+  const kv = document.getElementById('pcKeypadView'); if (kv) kv.style.display = 'none';
+  const sv = document.getElementById('pcSuccessView'); if (sv) sv.style.display = '';
+  renderPcSuccessBanner();
+}
 
 // PC를 1단계(QR 창만)로 되돌리고 새 세션·QR 발급
 function renewToQr() {
   clearTimeout(successRenewTimer);
   stage2Shown = false;
+  successShownPC = false;
   lastAuthSuccess = null;
+  const kv = document.getElementById('pcKeypadView'); if (kv) kv.style.display = '';
+  const sv = document.getElementById('pcSuccessView'); if (sv) { sv.style.display = 'none'; sv.innerHTML = ''; }
   document.getElementById('mainGrid').classList.add('qr-only');
   document.getElementById('stage1').style.display = '';
   document.getElementById('stage2').style.display = 'none';

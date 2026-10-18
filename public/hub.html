@@ -30,7 +30,7 @@
   </div>
   <div class="panel">
     <h2 id="hTitle">휴대폰으로 스캔하여 시작</h2>
-    <p id="hDesc">아래 QR을 휴대폰 카메라로 스캔하세요. 휴대폰은 스캔 모드로 바뀌고, 이 화면에는 데모 접속 QR이 나타납니다.</p>
+    <p id="hDesc">아래 QR을 휴대폰 카메라로 스캔하세요. 휴대폰에 로그인 화면이 열리고, 이 화면에는 키패드가 나타납니다.</p>
     <div class="qr-box" id="qrBox"><div class="wait" id="qrWait">QR 생성 중…</div></div>
     <div class="status" id="status">휴대폰 스캔을 기다리는 중…</div>
   </div>
@@ -41,8 +41,8 @@ const socket = io();
 const APP_TITLE_KO = 'VTK 데모 1', APP_TITLE_EN = 'VTK Demo 1';
 let LANG = (function(){ const q=new URLSearchParams(location.search).get('lang'); if(q==='ko'||q==='en')return q; return (navigator.language||'').toLowerCase().startsWith('ko')?'ko':'en'; })();
 const I18N = {
-  ko: { hTitle:'휴대폰으로 스캔하여 시작', hDesc:'아래 QR을 휴대폰 카메라로 스캔하세요. 휴대폰은 스캔 모드로 바뀌고, 이 화면에는 데모 접속 QR이 나타납니다.', status:'휴대폰 스캔을 기다리는 중…', paired:'연결됨 — 데모 화면으로 이동합니다…', qrWait:'QR 생성 중…', qrFail:'QR 생성 실패 — 새로고침 해주세요.' },
-  en: { hTitle:'Scan with your phone to start', hDesc:'Scan the QR below with your phone camera. Your phone switches to scan mode and this screen shows the demo access QR.', status:'Waiting for a phone to scan…', paired:'Connected — opening the demo screen…', qrWait:'Generating QR…', qrFail:'QR generation failed — please refresh.' }
+  ko: { hTitle:'휴대폰으로 스캔하여 시작', hDesc:'아래 QR을 휴대폰 카메라로 스캔하세요. 휴대폰에 로그인 화면이 열리고, 이 화면에는 키패드가 나타납니다.', status:'휴대폰 스캔을 기다리는 중…', paired:'휴대폰 연결됨 — 키패드를 준비합니다…', qrWait:'QR 생성 중…', qrFail:'QR 생성 실패 — 새로고침 해주세요.' },
+  en: { hTitle:'Scan with your phone to start', hDesc:'Scan the QR below with your phone camera. The login screen opens on your phone and this screen shows the keypad.', status:'Waiting for a phone to scan…', paired:'Phone connected — preparing the keypad…', qrWait:'Generating QR…', qrFail:'QR generation failed — please refresh.' }
 };
 function t(k){ return (I18N[LANG]&&I18N[LANG][k]!==undefined)?I18N[LANG][k]:I18N.ko[k]; }
 // 허브 1회 식별자(디스플레이↔휴대폰 페어링용)
@@ -71,7 +71,7 @@ function joinHub(){ socket.emit('join-hub',{ hubId }); }
 socket.on('connect', joinHub); joinHub();
 socket.on('hub-paired', () => {
   const st=document.getElementById('status'); st.classList.add('on'); st.textContent=t('paired');
-  setTimeout(()=>{ location.href='/?lang='+LANG; }, 700);
+  setTimeout(()=>{ location.href='/?lang='+LANG+'&h='+hubId; }, 700);
 });
 applyLang();
 </script>

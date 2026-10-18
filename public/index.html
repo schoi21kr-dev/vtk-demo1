@@ -151,6 +151,10 @@ let stage2Shown = false;
 const NUMERIC_INDICES = [0, 1, 2, 3, 4, 5, 6, 7, 8, 10]; // 9·11은 빈 셀
 const STD_PI = [9, 0, 1, 2, 3, 4, 5, 6, 7, 8]; // 일반 순서 키패드(1·2·3/4·5·6/7·8·9/0)
 let currentPi = null;   // 서버가 발급한 실제 π (스캔 시 VTK 배치로 전환)
+// 허브(런처)에서 전환되어 온 경우(?h=): 첫 세션은 QR 대신 '연결됨'을 표시하고 휴대폰을 바로 인증 화면으로 보낸다
+const HUB_ID = new URLSearchParams(location.search).get('h') || null;
+let hubFirst = !!HUB_ID;
+let hubConnectedShown = false;
 
 
 // ─────────── 다국어 사전 (화면 문구는 모두 여기서 관리) ───────────
@@ -161,6 +165,8 @@ const I18N = {
     qrHeading: '\u2460 휴대폰으로 QR 코드 스캔',
     qrLoading: 'QR 코드 로딩 중…',
     qrFailed: 'QR 생성 실패 — 잠시 후 다시 시도하세요.',
+    hubConnectedHeading: '휴대폰 연결됨',
+    hubConnectedBody: '휴대폰에서 로그인 확인을 기다리는 중…',
     stage2Title: '2단계',
     padBHeading: '\u2461 VNK · 숫자표시 (PC)',
     padNote: '아래 가상 숫자키패드에서 비밀번호 4자리의 <b>위치</b>를 확인 후 휴대폰의 가상 입력키패드에서 비밀번호 위치를 터치하세요.',
@@ -192,6 +198,8 @@ const I18N = {
     qrHeading: '\u2460 Scan the QR Code with Your Phone',
     qrLoading: 'Loading QR code…',
     qrFailed: 'QR generation failed — please try again shortly.',
+    hubConnectedHeading: 'Phone connected',
+    hubConnectedBody: 'Waiting for login confirmation on your phone…',
     stage2Title: 'Step 2',
     padBHeading: '\u2461 VNK · Numbered (PC)',
     padNote: 'Find the <b>positions</b> of your 4-digit password on the virtual numeric keypad below, then touch those positions on the virtual input keypad on your phone.',
@@ -243,7 +251,7 @@ function applyLanguage() {
   }
   renderLog();
   renderResultBanner();
-  if (currentMobileUrl) renderQr(currentMobileUrl);
+  if (hubConnectedShown) showHubConnected(); else if (currentMobileUrl) renderQr(currentMobileUrl);
 }
 
 function setLanguage(lang) {
@@ -288,6 +296,7 @@ function renderResultBanner() {
 // 휴대폰 페어링 완료(스캔) 시 QR 창 제거 → VNK 창만 가운데 표시
 function showStage2() {
   stage2Shown = true;
+  hubConnectedShown = false;
   document.getElementById('stage1').style.display = 'none';   // QR 창 제거
   document.getElementById('stage2').style.display = '';
   // 세션 전체 1분 수명 카운트다운이 만료를 관장하므로 별도 idle 타이머는 사용하지 않음
@@ -328,7 +337,15 @@ async function startSession() {
     log('logPcJoin', 'system');
 
     currentMobileUrl = data.mobileUrl;
-    renderQr(currentMobileUrl);
+    if (hubFirst) {
+      // 허브에서 전환된 첫 세션: QR 대신 '연결됨' 표시 + 휴대폰을 바로 인증 화면으로 보냄
+      hubFirst = false;
+      showHubConnected();
+      const murl = new URL(data.mobileUrl); murl.searchParams.set('lang', LANG);
+      socket.emit('hub-session-ready', { hubId: HUB_ID, mobileUrl: murl.toString() });
+    } else {
+      renderQr(currentMobileUrl);
+    }
 
     currentPi = data.pi;             // 실제 π는 보관만 (스캔 전에는 사용하지 않음)
     renderPadB(STD_PI);              // 스캔 전: 일반 순서 키패드 표시
@@ -386,6 +403,14 @@ function renderQr(mobileUrl) {
   const box = document.getElementById('qrBox');
   box.innerHTML = '';
   box.appendChild(img);
+}
+
+// 허브에서 전환된 첫 세션: QR 자리에 '휴대폰 연결됨' 안내 표시 (휴대폰은 스캔 없이 바로 인증 화면 진입)
+function showHubConnected() {
+  hubConnectedShown = true;
+  const box = document.getElementById('qrBox');
+  if (box) box.innerHTML = '<div class="qr-wait"><div style="font-size:22px;color:var(--navy);font-weight:bold;margin-bottom:10px;">\u2713 ' + t('hubConnectedHeading') + '</div><div>' + t('hubConnectedBody') + '</div></div>';
+  const h = document.querySelector('#stage1 .qr-panel h2'); if (h) h.textContent = t('hubConnectedHeading');
 }
 
 // π에 따라 숫자 배치: 숫자 d는 셀 NUMERIC_INDICES[pi[d]] 에 표시 (server.js와 동일 규칙)

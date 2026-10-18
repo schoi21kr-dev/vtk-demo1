@@ -254,9 +254,12 @@ app.post('/auth/submit', (req, res) => {
 io.on('connection', (socket) => {
   socket.on('join-pc', ({ sid }) => { socket.join(`pc-${sid}`); if (sid) socket.data.pcSid = sid; if (sid && sessions.has(sid)) sessions.get(sid).createdAt = Date.now(); console.log(`[Socket] PC joined ${sid}`); });
   socket.on('join-mobile', ({ sid }) => { socket.join(`mobile-${sid}`); console.log(`[Socket] Mobile joined ${sid}`); });
-  // 허브(디스플레이) ↔ 스캔(휴대폰) 페어링: 휴대폰이 허브 QR을 스캔하면 디스플레이를 데모 세션 QR로 전환시킴
+  // 허브(디스플레이) ↔ 스캔(휴대폰) 페어링
+  //  1) 휴대폰이 허브 QR 스캔 → hub-scanned → 디스플레이를 데모(/?h=)로 전환
+  //  2) 디스플레이(데모)가 세션 생성 후 hub-session-ready(mobileUrl) 전송 → 휴대폰을 바로 인증 화면으로 이동(hub-go)
   socket.on('join-hub', ({ hubId }) => { if (hubId) socket.join(`hub-${hubId}`); });
   socket.on('hub-scanned', ({ hubId }) => { if (hubId) { io.to(`hub-${hubId}`).emit('hub-paired'); console.log(`[Hub] 휴대폰 스캔 → 디스플레이(${hubId}) 데모 전환`); } });
+  socket.on('hub-session-ready', ({ hubId, mobileUrl }) => { if (hubId && mobileUrl) { io.to(`hub-${hubId}`).emit('hub-go', { mobileUrl }); console.log(`[Hub] 디스플레이 세션 준비 → 휴대폰(${hubId}) 인증 화면 이동`); } });
   // 휴대폰 '확인'(로그인 승인) → PC를 입력 화면으로 전환 (확인 후에만 전환)
   socket.on('confirm-login', ({ sid }) => { if (sid) { const s = sessions.get(sid); if (s) s.qrUsed = true; io.to(`pc-${sid}`).emit('mobile-paired'); } });
   // 휴대폰 '취소' → PC에 새 QR 재발급 신호

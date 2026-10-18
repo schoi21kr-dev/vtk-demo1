@@ -8,20 +8,16 @@
   * { box-sizing:border-box; margin:0; padding:0; }
   body { font-family:'Malgun Gothic','Apple SD Gothic Neo',sans-serif; background:#0F1838; color:#fff; min-height:100vh; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:16px; }
   #content { width:100%; max-width:380px; display:flex; flex-direction:column; align-items:center; }
-  .cam-wrap { position:relative; width:100%; max-width:380px; aspect-ratio:3/4; background:#000; border-radius:16px; overflow:hidden; }
-  .cam-wrap video { width:100%; height:100%; object-fit:cover; display:block; }
-  .cam-overlay { position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; pointer-events:none; }
-  .cam-frame { width:62%; aspect-ratio:1; border:3px solid rgba(255,255,255,.9); border-radius:16px; }
-  .cam-hint { margin-top:18px; color:#fff; font-size:16px; font-weight:bold; text-shadow:0 1px 4px rgba(0,0,0,.7); text-align:center; padding:0 16px; }
-  .msg { text-align:center; padding:36px 22px; }
-  .msg h2 { font-size:22px; margin-bottom:14px; }
+  .msg { text-align:center; padding:48px 22px; }
+  .msg h2 { font-size:23px; margin-bottom:16px; }
   .msg p { font-size:15px; color:#CBD5E1; line-height:1.75; }
+  .spinner { border:3px solid rgba(255,255,255,.18); border-top:3px solid #D4A574; border-radius:50%; width:40px; height:40px; animation:spin 1s linear infinite; margin:0 auto 22px; }
+  @keyframes spin { 100% { transform:rotate(360deg); } }
   .start-btn { margin-top:22px; padding:14px 26px; border:none; border-radius:12px; background:#D4A574; color:#0F1838; font-size:16px; font-weight:bold; cursor:pointer; font-family:inherit; }
 </style>
-<script src="jsQR.min.js"></script>
 </head>
 <body>
-<div id="content"><div class="msg"><h2 id="loading">카메라 준비 중…</h2></div></div>
+<div id="content"><div class="msg"><div class="spinner"></div><h2 id="loading">연결 중…</h2></div></div>
 <script src="/socket.io/socket.io.js"></script>
 <script>
 const socket = io();
@@ -29,46 +25,33 @@ const params = new URLSearchParams(location.search);
 const hubId = params.get('h');
 let LANG = (function(){ const q=params.get('lang'); if(q==='ko'||q==='en')return q; return (navigator.language||'').toLowerCase().startsWith('ko')?'ko':'en'; })();
 const I18N = {
-  ko: { loading:'카메라 준비 중…', hint:'PC 화면의 QR 코드를 비추세요', failTitle:'카메라를 켤 수 없습니다', failMsg:'브라우저에서 카메라 권한을 허용한 뒤 다시 시도하거나, PC의 QR을 다시 스캔해 주세요.', retry:'카메라 다시 시도' },
-  en: { loading:'Preparing camera…', hint:'Point at the QR code on the PC screen', failTitle:'Could not start the camera', failMsg:'Allow camera permission in your browser and try again, or rescan the QR on the PC.', retry:'Try camera again' }
+  ko: { connectedTitle:'휴대폰 연결됨', waiting:'PC 화면을 준비하고 있습니다…', delayTitle:'연결이 지연됩니다', delayMsg:'PC에 허브 화면(/hub)이 열려 있는지 확인한 뒤 다시 시도하거나, 이 화면을 새로고침해 주세요.', retry:'다시 시도' },
+  en: { connectedTitle:'Phone connected', waiting:'Preparing the PC screen…', delayTitle:'Connection delayed', delayMsg:'Make sure the hub screen (/hub) is open on the PC, then try again or refresh this page.', retry:'Try again' }
 };
 function t(k){ return (I18N[LANG]&&I18N[LANG][k]!==undefined)?I18N[LANG][k]:I18N.ko[k]; }
-let camStream=null, camRAF=null;
-function notifyHub(){ if(hubId) socket.emit('hub-scanned',{ hubId }); }
-socket.on('connect', notifyHub); notifyHub();   // 디스플레이(허브)에 "스캔됨" 통지 → 디스플레이가 데모 세션 QR로 전환
-
-async function startCamera(){
+let navigated=false, hubGoTimer=null;
+function showWaiting(){
   document.getElementById('content').innerHTML =
-    '<div class="cam-wrap"><video id="camVideo" playsinline muted></video>' +
-    '<div class="cam-overlay"><div class="cam-frame"></div><div class="cam-hint">' + t('hint') + '</div></div></div>';
-  const video=document.getElementById('camVideo');
-  try{
-    camStream=await navigator.mediaDevices.getUserMedia({ video:{ facingMode:{ ideal:'environment' } }, audio:false });
-    video.srcObject=camStream; await video.play(); scanLoop(video);
-  }catch(e){
-    document.getElementById('content').innerHTML =
-      '<div class="msg"><h2>⚠️ ' + t('failTitle') + '</h2><p>' + t('failMsg') + '</p>' +
-      '<button class="start-btn" id="retryBtn">' + t('retry') + '</button></div>';
-    const r=document.getElementById('retryBtn'); if(r) r.onclick=startCamera;
-  }
+    '<div class="msg"><div class="spinner"></div><h2>\u2713 ' + t('connectedTitle') + '</h2><p>' + t('waiting') + '</p></div>';
 }
-function scanLoop(video){
-  const canvas=document.createElement('canvas');
-  const ctx=canvas.getContext('2d',{ willReadFrequently:true });
-  const tick=()=>{
-    if(video.readyState>=2 && window.jsQR && video.videoWidth){
-      canvas.width=video.videoWidth; canvas.height=video.videoHeight;
-      ctx.drawImage(video,0,0,canvas.width,canvas.height);
-      const img=ctx.getImageData(0,0,canvas.width,canvas.height);
-      const code=jsQR(img.data,img.width,img.height,{ inversionAttempts:'dontInvert' });
-      if(code && code.data && /\/m\.html\?/.test(code.data)){ stopCamera(); location.href=code.data; return; }
-    }
-    camRAF=requestAnimationFrame(tick);
-  };
-  camRAF=requestAnimationFrame(tick);
+function showDelay(){
+  document.getElementById('content').innerHTML =
+    '<div class="msg"><h2>\u26A0\uFE0F ' + t('delayTitle') + '</h2><p>' + t('delayMsg') + '</p>' +
+    '<button class="start-btn" id="retryBtn">' + t('retry') + '</button></div>';
+  const r=document.getElementById('retryBtn'); if(r) r.onclick=()=>{ showWaiting(); notifyHub(); armFallback(); };
 }
-function stopCamera(){ if(camRAF){ cancelAnimationFrame(camRAF); camRAF=null; } if(camStream){ camStream.getTracks().forEach(tr=>tr.stop()); camStream=null; } }
-startCamera();
+function armFallback(){ if(hubGoTimer) clearTimeout(hubGoTimer); hubGoTimer=setTimeout(()=>{ if(!navigated) showDelay(); }, 12000); }
+function gotoMobile(url){
+  if(navigated) return; navigated=true;
+  if(hubGoTimer){ clearTimeout(hubGoTimer); hubGoTimer=null; }
+  try{ const u=new URL(url, location.origin); u.searchParams.set('lang', LANG); url=u.toString(); }catch(_){}
+  location.href=url;
+}
+function notifyHub(){ if(hubId){ socket.emit('join-hub',{ hubId }); socket.emit('hub-scanned',{ hubId }); } }
+socket.on('connect', notifyHub); notifyHub();   // 허브 룸 참여 + 디스플레이에 "스캔됨" 통지 → 디스플레이가 데모(/?h=)로 전환, 이후 hub-go 수신
+socket.on('hub-go', ({ mobileUrl }) => { if(mobileUrl) gotoMobile(mobileUrl); });   // PC 세션 준비 완료 → 바로 인증 화면으로
+showWaiting();
+armFallback();
 </script>
 </body>
 </html>

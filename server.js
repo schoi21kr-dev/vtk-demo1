@@ -108,6 +108,10 @@ function sha256(text) { return crypto.createHash('sha256').update(text).digest('
 
 app.get('/health', (req, res) => res.json({ status: 'ok', timestamp: Date.now() }));
 
+// 허브(런처) 화면 / 휴대폰 스캔 화면 (기존 '/'·'/m.html' 흐름은 그대로)
+app.get('/hub', (req, res) => res.sendFile(path.join(__dirname, 'public', 'hub.html')));
+app.get('/scan', (req, res) => res.sendFile(path.join(__dirname, 'public', 'scan.html')));
+
 // 사용자 등록 (시연용)
 app.post('/register', (req, res) => {
   const { userId, password, sid } = req.body;
@@ -250,6 +254,9 @@ app.post('/auth/submit', (req, res) => {
 io.on('connection', (socket) => {
   socket.on('join-pc', ({ sid }) => { socket.join(`pc-${sid}`); if (sid) socket.data.pcSid = sid; if (sid && sessions.has(sid)) sessions.get(sid).createdAt = Date.now(); console.log(`[Socket] PC joined ${sid}`); });
   socket.on('join-mobile', ({ sid }) => { socket.join(`mobile-${sid}`); console.log(`[Socket] Mobile joined ${sid}`); });
+  // 허브(디스플레이) ↔ 스캔(휴대폰) 페어링: 휴대폰이 허브 QR을 스캔하면 디스플레이를 데모 세션 QR로 전환시킴
+  socket.on('join-hub', ({ hubId }) => { if (hubId) socket.join(`hub-${hubId}`); });
+  socket.on('hub-scanned', ({ hubId }) => { if (hubId) { io.to(`hub-${hubId}`).emit('hub-paired'); console.log(`[Hub] 휴대폰 스캔 → 디스플레이(${hubId}) 데모 전환`); } });
   // 휴대폰 '확인'(로그인 승인) → PC를 입력 화면으로 전환 (확인 후에만 전환)
   socket.on('confirm-login', ({ sid }) => { if (sid) { const s = sessions.get(sid); if (s) s.qrUsed = true; io.to(`pc-${sid}`).emit('mobile-paired'); } });
   // 휴대폰 '취소' → PC에 새 QR 재발급 신호

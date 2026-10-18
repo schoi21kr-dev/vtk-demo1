@@ -247,26 +247,6 @@ app.post('/auth/submit', (req, res) => {
   res.json({ ok: success, computedPassword: enteredPassword, message: success ? '인증 성공' : '인증 실패' });
 });
 
-// 휴대폰이 요청: 현재 세션의 π만 새로 섞음 (세션·페어링·QR 유지)
-//  - 새 π를 세션에 저장하고, PC(VNK)에 소켓으로 새 π를 push하여 숫자판 갱신
-//  - 휴대폰의 무표시 패드는 그대로, 강조 계산용으로 새 π·password를 응답
-app.post('/auth/reshuffle', (req, res) => {
-  const { sid } = req.body;
-  const session = sessions.get(sid);
-  if (!session) return res.status(404).json({ error: '세션 만료 또는 없음' });
-
-  session.pi = generatePi();
-  session.status = 'waiting_for_mobile_input';
-  const user = users.get(session.userId);
-  console.log(`[Reshuffle] session=${sid} 새 π 생성`);
-
-  // PC 숫자판 B 갱신용으로 새 π를 push
-  io.to(`pc-${sid}`).emit('pi-updated', { pi: session.pi });
-
-  // 휴대폰에는 강조 재계산용으로 새 π·password 반환
-  res.json({ ok: true, pi: session.pi, password: user ? user.password : null });
-});
-
 io.on('connection', (socket) => {
   socket.on('join-pc', ({ sid }) => { socket.join(`pc-${sid}`); if (sid) socket.data.pcSid = sid; if (sid && sessions.has(sid)) sessions.get(sid).createdAt = Date.now(); console.log(`[Socket] PC joined ${sid}`); });
   socket.on('join-mobile', ({ sid }) => { socket.join(`mobile-${sid}`); console.log(`[Socket] Mobile joined ${sid}`); });

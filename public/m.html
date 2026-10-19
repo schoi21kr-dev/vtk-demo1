@@ -556,7 +556,7 @@ function scanLoop(video) {
       ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
       const img = ctx.getImageData(0, 0, canvas.width, canvas.height);
       const code = jsQR(img.data, img.width, img.height, { inversionAttempts: 'dontInvert' });
-      if (code && code.data && /\/m\.html\?/.test(code.data)) {
+      if (code && code.data && /\/(m\.html|scan)\?/.test(code.data)) {   // 세션 QR(m.html) + 허브 QR(scan) 모두 인식 → 카메라 모드에서 허브 화면도 자동 진입
         stopCamera();
         window.location.href = code.data;   // 새 QR이 가리키는 새 세션으로 이동
         return;

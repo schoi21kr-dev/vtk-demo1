@@ -517,7 +517,7 @@ function showResult(success) {
   if (success) {
     stopPhoneCountdown();
     successShown = true; renderSuccess();                               // '✓ 인증 성공' 3초 표시
-    setTimeout(() => { if (successShown) startCameraScan(); }, 3000);   // 3초 후 카메라 모드로 전환
+    setTimeout(() => { if (successShown) showScanGuide(); }, 3000);   // 3초 후 홈과 동일: '카메라로 스캔' 안내 화면
   } else {
     authResult = 'fail'; renderAuthResult();
     setTimeout(() => { authResult = null; userInput = []; locked = false; renderPadA(); }, 3000);

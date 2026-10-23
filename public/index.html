@@ -169,7 +169,6 @@ let hubFirst = !!HUB_ID;
 if (HUB_ID) { try { const _u = new URL(location.href); _u.searchParams.delete('h'); history.replaceState(null, '', _u); } catch (_) {} }
 let hubConnectedShown = false;
 let successShownPC = false;
-let pendingHomeResetSid = null;   // 홈(재시작) 시, 새 승인화면을 보낼 기존 휴대폰 세션
 
 
 // ─────────── 다국어 사전 (화면 문구는 모두 여기서 관리) ───────────
@@ -362,12 +361,6 @@ async function startSession() {
       showHubConnected();
       const murl = new URL(data.mobileUrl); murl.searchParams.set('lang', LANG);
       socket.emit('hub-session-ready', { hubId: HUB_ID, mobileUrl: murl.toString() });
-    } else if (pendingHomeResetSid) {
-      // 홈(재시작): 새 세션 생성 → PC는 '휴대폰 연결됨' 표시 + 기존 휴대폰을 새 승인화면으로 보냄
-      const target = pendingHomeResetSid; pendingHomeResetSid = null;
-      showHubConnected();
-      const murl = new URL(data.mobileUrl); murl.searchParams.set('lang', LANG);
-      socket.emit('home-reset-ready', { oldSid: target, mobileUrl: murl.toString() });
     } else {
       renderQr(currentMobileUrl);
     }
@@ -522,8 +515,8 @@ socket.on('renew-session', () => { renewToQr(); });
 socket.on('set-lang', ({ lang }) => setLanguage(lang));
 document.getElementById('langKo').onclick = () => { setLanguage('ko'); socket.emit('set-lang', { sid: currentSid, lang: 'ko' }); };
 document.getElementById('langEn').onclick = () => { setLanguage('en'); socket.emit('set-lang', { sid: currentSid, lang: 'en' }); };
-document.getElementById('btnHub').onclick = () => { if ((stage2Shown || hubConnectedShown) && currentSid) socket.emit('home-reset', { sid: currentSid }); else location.href = '/hub?lang=' + LANG; };   // 집(홈) → 데모 진행 중/휴대폰 연결됨이면 재시작(휴대폰 승인화면 갱신), 아니면 허브 런처로
-socket.on('home-reset', ({ sid }) => { pendingHomeResetSid = sid; renewToQr(); });
+document.getElementById('btnHub').onclick = () => { if (currentSid) socket.emit('home-hub', { sid: currentSid }); else location.href = '/hub?lang=' + LANG; };   // 집(홈) → 허브 첫 화면(/hub)으로, 짝 휴대폰은 '카메라로 스캔' 안내
+socket.on('pc-to-hub', () => { location.href = '/hub?lang=' + LANG; });
 
 // 서버 재시작 등으로 소켓이 끊겼다 다시 연결되면: 세션이 살아있으면 방에 재합류,
 // 사라졌으면 자동으로 새 세션·QR을 재발급 → 화면의 QR이 항상 유효하게 유지됨

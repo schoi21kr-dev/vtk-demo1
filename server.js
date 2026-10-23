@@ -262,8 +262,8 @@ io.on('connection', (socket) => {
   socket.on('hub-session-ready', ({ hubId, mobileUrl }) => { if (hubId && mobileUrl) { io.to(`hub-${hubId}`).emit('hub-go', { mobileUrl }); console.log(`[Hub] 디스플레이 세션 준비 → 휴대폰(${hubId}) 인증 화면 이동`); } });
   // 홈(집) 버튼: 눌린 기기가 요청 → 같은 세션의 PC는 허브 화면으로, 휴대폰은 카메라(재스캔)로 전환
   // 홈(집) 버튼: 데모 재시작 — PC가 새 세션을 만들어 '휴대폰 연결됨' 표시 후, 기존 휴대폰을 새 세션 승인(로그인 요청)화면으로 보냄
-  socket.on('home-reset', ({ sid }) => { if (sid) { io.to(`pc-${sid}`).emit('home-reset', { sid }); console.log(`[Home] 재시작 요청 → PC(${sid})`); } });
-  socket.on('home-reset-ready', ({ oldSid, mobileUrl }) => { if (oldSid && mobileUrl) { io.to(`mobile-${oldSid}`).emit('home-go', { mobileUrl }); console.log(`[Home] PC 새 세션 준비 → 휴대폰(${oldSid}) 승인화면 이동`); } });
+  // 홈(집) 버튼: 첫 화면으로 — PC는 허브 런처(/hub), 휴대폰은 '카메라로 스캔' 안내 화면으로
+  socket.on('home-hub', ({ sid }) => { if (sid) { io.to(`pc-${sid}`).emit('pc-to-hub'); io.to(`mobile-${sid}`).emit('mobile-to-scan'); console.log(`[Home] 홈 → PC(${sid}) 허브 첫화면 + 휴대폰 스캔 안내`); } });
   // 휴대폰 '확인'(로그인 승인) → PC를 입력 화면으로 전환 (확인 후에만 전환)
   socket.on('confirm-login', ({ sid }) => { if (sid) { const s = sessions.get(sid); if (s) s.qrUsed = true; io.to(`pc-${sid}`).emit('mobile-paired'); } });
   // 휴대폰 '취소' → PC에 새 QR 재발급 신호

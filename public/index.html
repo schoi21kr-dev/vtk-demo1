@@ -29,6 +29,7 @@
   .qr-panel { text-align: center; }
   /* QR 1회용 만료 카운트다운 */
   .qr-ttl { margin: 10px auto 2px; font-size: 18px; font-weight: bold; color: #475569; background: #E5E7EB; border: 1px solid #CBD5E1; border-radius: 999px; padding: 7px 16px; display: inline-block; letter-spacing: .3px; }
+  .qr-ttl-static { margin: 10px auto 2px; font-size: 18px; font-weight: bold; color: #475569; background: #E5E7EB; border: 1px solid #CBD5E1; border-radius: 999px; padding: 7px 16px; display: inline-block; letter-spacing: .3px; }
   @keyframes ttlBlink { 0%, 100% { opacity: 1; } 50% { opacity: .25; } }
   .qr-ttl.ending { color: var(--red); background: var(--red-bg); border-color: rgba(153,27,27,.4); animation: ttlBlink 2s ease-in-out infinite; }
   .qr-panel .alt-url { display: none; max-width: 480px; margin: 14px auto 0; }
@@ -132,6 +133,7 @@
       <div class="panel qr-panel">
         <h2 data-i18n="qrHeading">&#9312; 휴대폰으로 QR 코드 스캔</h2>
         <div class="qr-box" id="qrBox"><div class="qr-wait" data-i18n="qrLoading">QR 코드 로딩 중…</div></div>
+        <div style="text-align:center;"><div class="qr-ttl-static" id="qrTtlPreview"></div></div>
       </div>
     </div>
 
@@ -268,6 +270,7 @@ function applyLanguage() {
   renderResultBanner();
   if (successShownPC) renderPcSuccessBanner();
   if (hubConnectedShown) showHubConnected(); else if (currentMobileUrl) renderQr(currentMobileUrl);
+  renderTtlPreview();
 }
 
 function setLanguage(lang) {
@@ -378,6 +381,8 @@ async function startSession() {
 let qrCountdownTimer = null;
 function fmtMMSS(ms){ const s=Math.max(0,Math.ceil(ms/1000)); const m=Math.floor(s/60), ss=s%60; return (m<10?'0':'')+m+':'+(ss<10?'0':'')+ss; }
 function qrTtlText(mmss){ return LANG==='en' ? ('🔒 One-time · expires in ' + mmss) : ('🔒 1회용 · ' + mmss + ' 후 만료'); }
+// 초기 QR 화면에 60초 제한을 미리 알리는 정적 배지(실제 카운트다운은 '확인' 후 시작)
+function renderTtlPreview(){ const el=document.getElementById('qrTtlPreview'); if(el) el.textContent = qrTtlText(fmtMMSS(currentQrTtlMs||60000)); }
 // 세션 전체 수명 카운트다운을 QR·VNK 양쪽 배지(.qr-ttl)에 동일하게 표시
 function setTtlBadges(text, ending, show){
   document.querySelectorAll('.qr-ttl').forEach(el=>{

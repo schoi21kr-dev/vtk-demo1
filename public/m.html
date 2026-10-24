@@ -62,6 +62,7 @@
   .lr-btns .lr-cancel { flex: 1; }
   /* 세션 만료 카운트다운 배지 (모든 화면 공통) */
   .qr-ttl { display: block; width: max-content; max-width: 100%; margin: 14px auto 2px; font-size: 17px; font-weight: bold; color: #475569; background: #E5E7EB; border: 1px solid #CBD5E1; border-radius: 999px; padding: 7px 16px; letter-spacing: .3px; text-align: center; }
+  .qr-ttl-static { display: block; width: max-content; max-width: 100%; margin: 14px auto 2px; font-size: 17px; font-weight: bold; color: #475569; background: #E5E7EB; border: 1px solid #CBD5E1; border-radius: 999px; padding: 7px 16px; letter-spacing: .3px; text-align: center; }
   @keyframes ttlBlink { 0%, 100% { opacity: 1; } 50% { opacity: .25; } }
   .qr-ttl.ending { color: var(--red); background: var(--red-bg); border-color: rgba(153,27,27,.4); animation: ttlBlink 2s ease-in-out infinite; }
   /* 비밀번호 안내 (확인창 아래) */
@@ -349,7 +350,8 @@ function showConfirm(info) {
         <button class="btn btn-primary lr-confirm" id="confirmLoginBtn">${t('btnConfirmLogin')}</button>
       </div>
     </div>
-    <div class="pw-notice">${t('pwNotice')}</div>`;
+    <div class="pw-notice">${t('pwNotice')}</div>
+    <div class="qr-ttl-static">${qrTtlText(fmtMMSS((pairData && pairData.qrTtlMs) || 60000))}</div>`;
   const cb = document.getElementById('confirmLoginBtn'); if (cb) cb.onclick = confirmLogin;
   const xb = document.getElementById('cancelLoginBtn'); if (xb) xb.onclick = cancelLogin;
   setTimeout(fitToScreen, 0);

@@ -58,7 +58,7 @@ const KR_REGION = {
   '41': '경기도', '42': '강원특별자치도', '43': '충청북도', '44': '충청남도',
   '45': '전북특별자치도', '46': '전라남도', '47': '경상북도', '48': '경상남도', '49': '제주특별자치도'
 };
-// 접속 위치를 { ko, en } 두 언어로 반환 (시·도 수준까지만, 시·군·구 제외)
+// 접속 위치를 { ko, en } 두 언어로 반환 (시·군·구/우편번호까지 최대한 상세하게)
 function geoLookup(ip) {
   return new Promise((resolve) => {
     if (!ip || /^(127\.|10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.|::1|fc|fd|fe80)/.test(ip)) {
@@ -66,18 +66,22 @@ function geoLookup(ip) {
     }
     const unknown = { ko: '알 수 없음', en: 'Unknown' };
     try {
-      const r = http.get('http://ip-api.com/json/' + encodeURIComponent(ip) + '?fields=status,country,countryCode,region,regionName', { timeout: 2500 }, (resp) => {
+      const r = http.get('http://ip-api.com/json/' + encodeURIComponent(ip) + '?fields=status,country,countryCode,region,regionName,city,district,zip', { timeout: 2500 }, (resp) => {
         let data = '';
         resp.on('data', c => data += c);
         resp.on('end', () => {
           try {
             const j = JSON.parse(data);
             if (j.status !== 'success') return resolve(unknown);
-            const en = [j.regionName, j.country].filter(Boolean).join(', ') || 'Unknown';   // 시·도까지만 ("Seoul, South Korea")
+            // 시·군·구/동/우편번호까지 최대한 상세하게 (ip-api는 시·군·구를 영문으로만 제공)
+            const dedupe = (arr) => arr.filter(Boolean).filter((v, i, a) => a.indexOf(v) === i);
+            const enBase = dedupe([j.district, j.city, j.regionName, j.country]).join(', ') || 'Unknown';
+            const en = enBase + (j.zip ? ' (' + j.zip + ')' : '');
             let ko;
             if (j.countryCode === 'KR') {
               const sido = KR_REGION[j.region] || j.regionName || '';
-              ko = ('대한민국' + (sido ? ' ' + sido : '')).trim();
+              const detail = dedupe([j.city, j.district]).filter(v => v !== j.regionName);   // 시·군·구/동(영문)
+              ko = ('대한민국' + (sido ? ' ' + sido : '') + (detail.length ? ' ' + detail.join(' ') : '')).trim() + (j.zip ? ' (' + j.zip + ')' : '');
             } else {
               ko = en;   // 한국 외 지역은 영문으로 표시
             }

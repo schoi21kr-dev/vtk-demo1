@@ -35,6 +35,7 @@
     <div class="status" id="status">휴대폰 스캔을 기다리는 중…</div>
   </div>
 
+<script src="qrcode.min.js"></script>
 <script src="/socket.io/socket.io.js"></script>
 <script>
 const socket = io();
@@ -50,10 +51,13 @@ const hubId = (window.crypto&&crypto.getRandomValues) ? [...crypto.getRandomValu
 function scanUrl(){ const u=new URL(location.origin+'/scan'); u.searchParams.set('h',hubId); u.searchParams.set('lang',LANG); return u.toString(); }
 function renderQr(){
   const data=scanUrl(), size=480, disp=360;
-  const api='https://api.qrserver.com/v1/create-qr-code/?size='+size+'x'+size+'&data='+encodeURIComponent(data)+'&color=1E2761&bgcolor=ffffff&margin=8';
-  const img=new Image(); img.alt='QR'; img.style.cssText='display:block;width:'+disp+'px;height:'+disp+'px;max-width:100%;border-radius:8px;';
-  img.onerror=()=>{ const b=document.getElementById('qrBox'); if(b) b.innerHTML='<div class="wait">'+t('qrFail')+'</div>'; };
-  img.src=api; const box=document.getElementById('qrBox'); box.innerHTML=''; box.appendChild(img);
+  const box=document.getElementById('qrBox'); if(!box) return;
+  const canvas=document.createElement('canvas'); canvas.alt='QR';
+  QRCode.toCanvas(canvas, data, { width:size, margin:2, color:{ dark:'#1E2761', light:'#ffffff' } }, function(err){
+    if(err){ box.innerHTML='<div class="wait">'+t('qrFail')+'</div>'; return; }
+    canvas.style.cssText='display:block;width:'+disp+'px;height:'+disp+'px;max-width:100%;border-radius:8px;';
+    box.innerHTML=''; box.appendChild(canvas);
+  });
 }
 function applyLang(){
   document.documentElement.lang=LANG; document.title=(LANG==='en'?APP_TITLE_EN:APP_TITLE_KO)+' · Hub';

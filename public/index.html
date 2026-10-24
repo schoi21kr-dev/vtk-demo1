@@ -153,6 +153,7 @@
   </div>
 </div>
 
+<script src="qrcode.min.js"></script>
 <script src="/socket.io/socket.io.js"></script>
 <script>
 const socket = io();
@@ -409,19 +410,19 @@ function renderQr(mobileUrl) {
   const url = new URL(mobileUrl);
   url.searchParams.set('lang', LANG);
   const shown = url.toString();
-  const qrSize = 480;          // 요청 해상도(선명도 유지용)
+  const qrSize = 480;          // 생성 해상도(선명도 유지용)
   const qrDisplay = 380;       // 표시 크기 — VNK 키패드 패널 높이에 맞춤
-  const qrApiUrl = 'https://api.qrserver.com/v1/create-qr-code/?size=' + qrSize + 'x' + qrSize +
-    '&data=' + encodeURIComponent(shown) + '&color=1E2761&bgcolor=ffffff&margin=8';
-  const img = new Image();
-  img.width = qrDisplay; img.height = qrDisplay; img.alt = 'QR';
-  // 인라인 width/height로 표시 크기를 VNK(320px)에 고정 (.qr-box img의 width:auto 를 덮어씀)
-  img.style.cssText = 'display:block;border-radius:8px;width:' + qrDisplay + 'px;height:' + qrDisplay + 'px;max-width:100%;';
-  img.onerror = () => { document.getElementById('qrBox').innerHTML = '<div class="qr-wait">' + t('qrFailed') + '</div>'; };
-  img.src = qrApiUrl;
   const box = document.getElementById('qrBox');
-  box.innerHTML = '';
-  box.appendChild(img);
+  if (!box) return;
+  const canvas = document.createElement('canvas');
+  canvas.alt = 'QR';
+  QRCode.toCanvas(canvas, shown, { width: qrSize, margin: 2, color: { dark: '#1E2761', light: '#ffffff' } }, function (err) {
+    if (err) { box.innerHTML = '<div class="qr-wait">' + t('qrFailed') + '</div>'; return; }
+    // 라이브러리가 canvas 크기를 덮어쓰므로, 생성 후 표시 크기를 VNK 패널 높이에 맞춰 고정
+    canvas.style.cssText = 'display:block;border-radius:8px;width:' + qrDisplay + 'px;height:' + qrDisplay + 'px;max-width:100%;';
+    box.innerHTML = '';
+    box.appendChild(canvas);
+  });
 }
 
 // 허브에서 전환된 첫 세션: QR 자리에 '휴대폰 연결됨' 안내 표시 (휴대폰은 스캔 없이 바로 인증 화면 진입)

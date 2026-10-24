@@ -56,6 +56,7 @@
   .lr-row:last-child { border-bottom: none; }
   .lr-k { color: var(--text-muted); flex: 0 0 auto; }
   .lr-v { color: #1F2937; font-weight: bold; text-align: right; word-break: break-word; }
+  .lr-sub { display: block; font-size: 11px; font-weight: normal; color: var(--text-muted); margin-top: 3px; }
   .lr-warn { background: var(--red-bg); color: var(--red); border: 1px solid rgba(153,27,27,.3); border-radius: 10px; padding: 12px 14px; font-size: 18px; font-weight: bold; text-align: center; line-height: 1.5; margin-bottom: 16px; }
   .lr-btns { display: flex; gap: 10px; }
   .lr-btns .btn { padding: 14px 8px; font-size: 15px; }
@@ -161,6 +162,7 @@ const I18N = {
     camFail: '카메라를 사용할 수 없습니다. QR 코드를 다시 스캔해 주세요.',
     reqTitle: 'VTK 데모 로그인 요청',
     locLabel: '접속 위치',
+    locNote: '지오IP 서비스로 추정한 접속 위치',
     devLabel: '접속 기기',
     timeLabel: '요청 시각',
     confirmWarn: '경고! 이 화면이 지금 사용 중인 PC와 다르면 진행하지 마세요.',
@@ -201,6 +203,7 @@ const I18N = {
     camFail: 'Camera unavailable. Please scan the QR code again.',
     reqTitle: 'VTK Demo login request',
     locLabel: 'Location',
+    locNote: 'Estimated via IP geolocation',
     devLabel: 'Device',
     timeLabel: 'Requested at',
     confirmWarn: 'Warning! If this screen is not the PC you are using right now, do not proceed.',
@@ -340,7 +343,7 @@ function showConfirm(info) {
     <div class="login-req">
       <h2 class="lr-title">${t('reqTitle')}</h2>
       <div class="lr-rows">
-        <div class="lr-row"><span class="lr-k">${t('locLabel')}</span><span class="lr-v">${loc}</span></div>
+        <div class="lr-row"><span class="lr-k">${t('locLabel')}</span><span class="lr-v">${loc}<span class="lr-sub">${t('locNote')}</span></span></div>
         <div class="lr-row"><span class="lr-k">${t('devLabel')}</span><span class="lr-v">${dev}</span></div>
         <div class="lr-row"><span class="lr-k">${t('timeLabel')}</span><span class="lr-v">${time}</span></div>
       </div>

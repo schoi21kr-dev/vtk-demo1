@@ -30,6 +30,19 @@
   /* QR 1회용 만료 카운트다운 */
   .qr-ttl { margin: 10px auto 2px; font-size: 18px; font-weight: bold; color: #475569; background: #E5E7EB; border: 1px solid #CBD5E1; border-radius: 999px; padding: 7px 16px; display: inline-block; letter-spacing: .3px; }
   .qr-ttl-static { margin: 10px auto 2px; font-size: 18px; font-weight: bold; color: #475569; background: #E5E7EB; border: 1px solid #CBD5E1; border-radius: 999px; padding: 7px 16px; display: inline-block; letter-spacing: .3px; }
+  /* 허브 '연결됨' 화면: 휴대폰 로그인 요청 내용 미러(확인 버튼 제외) */
+  .hub-connected { text-align: center; padding: 8px 6px; }
+  .hc-head { font-size: 22px; color: var(--navy); font-weight: bold; margin-bottom: 8px; }
+  .hc-sub { font-size: 14px; color: var(--text-muted); margin-bottom: 18px; }
+  .lr-mirror { text-align: left; max-width: 420px; margin: 0 auto; }
+  .lr-title { text-align: center; color: var(--navy); font-size: 17px; font-weight: bold; margin-bottom: 12px; letter-spacing: .3px; }
+  .lr-rows { background: rgba(0,0,0,0.03); border: 1px solid var(--border); border-radius: 10px; padding: 2px 14px; margin-bottom: 14px; }
+  .lr-row { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; padding: 11px 0; border-bottom: 1px solid #EDF0F4; font-size: 14px; }
+  .lr-row:last-child { border-bottom: none; }
+  .lr-k { color: var(--text-muted); flex: 0 0 auto; }
+  .lr-v { color: var(--text-dark); font-weight: bold; text-align: right; word-break: break-word; }
+  .lr-sub { display: block; font-size: 11px; font-weight: normal; color: var(--text-muted); margin-top: 3px; }
+  .lr-warn { background: var(--red-bg); color: var(--red); border: 1px solid rgba(153,27,27,.3); border-radius: 10px; padding: 12px 14px; font-size: 14px; font-weight: bold; text-align: center; line-height: 1.5; }
   @keyframes ttlBlink { 0%, 100% { opacity: 1; } 50% { opacity: .25; } }
   .qr-ttl.ending { color: var(--red); background: var(--red-bg); border-color: rgba(153,27,27,.4); animation: ttlBlink 2s ease-in-out infinite; }
   .qr-panel .alt-url { display: none; max-width: 480px; margin: 14px auto 0; }
@@ -184,6 +197,12 @@ const I18N = {
     qrFailed: 'QR 생성 실패 — 잠시 후 다시 시도하세요.',
     hubConnectedHeading: '휴대폰 연결됨',
     hubConnectedBody: '휴대폰에서 로그인 확인을 기다리는 중…',
+    reqTitle: 'VTK 데모 로그인 요청',
+    locLabel: '접속 위치',
+    locNote: '지오IP 서비스로 추정한 접속 위치',
+    devLabel: '접속 기기',
+    timeLabel: '요청 시각',
+    confirmWarn: '경고! 이 화면이 지금 사용 중인 PC와 다르면 진행하지 마세요.',
     stage2Title: '2단계',
     padBHeading: '\u2461 VNK · 숫자표시 (PC)',
     padNote: '아래 가상 숫자키패드에서 비밀번호 4자리의 <b>위치</b>를 확인 후 휴대폰의 가상 입력키패드에서 비밀번호 위치를 터치하세요.',
@@ -217,6 +236,12 @@ const I18N = {
     qrFailed: 'QR generation failed — please try again shortly.',
     hubConnectedHeading: 'Phone connected',
     hubConnectedBody: 'Waiting for login confirmation on your phone…',
+    reqTitle: 'VTK Demo login request',
+    locLabel: 'Location',
+    locNote: 'Estimated via IP geolocation',
+    devLabel: 'Device',
+    timeLabel: 'Requested at',
+    confirmWarn: 'Warning! If this screen is not the PC you are using right now, do not proceed.',
     stage2Title: 'Step 2',
     padBHeading: '\u2461 VNK · Numbered (PC)',
     padNote: 'Find the <b>positions</b> of your 4-digit password on the virtual numeric keypad below, then touch those positions on the virtual input keypad on your phone.',
@@ -431,10 +456,37 @@ function renderQr(mobileUrl) {
 }
 
 // 허브에서 전환된 첫 세션: QR 자리에 '휴대폰 연결됨' 안내 표시 (휴대폰은 스캔 없이 바로 인증 화면 진입)
+let lastAccessInfo = null;   // 허브 '연결됨' 화면에 미러할, 휴대폰 로그인 요청 정보
+function fmtReqTime(ms) {
+  if (!ms) return '—';
+  try { return new Date(ms).toLocaleString(LANG === 'ko' ? 'ko-KR' : 'en-US'); }
+  catch (e) { return new Date(ms).toLocaleString(); }
+}
 function showHubConnected() {
   hubConnectedShown = true;
   const box = document.getElementById('qrBox');
-  if (box) box.innerHTML = '<div class="qr-wait"><div style="font-size:22px;color:var(--navy);font-weight:bold;margin-bottom:10px;">\u2713 ' + t('hubConnectedHeading') + '</div><div>' + t('hubConnectedBody') + '</div></div>';
+  if (box) {
+    let html = '<div class="hub-connected">'
+      + '<div class="hc-head">\u2713 ' + t('hubConnectedHeading') + '</div>'
+      + '<div class="hc-sub">' + t('hubConnectedBody') + '</div>';
+    if (lastAccessInfo) {
+      const loc = (lastAccessInfo.location && (lastAccessInfo.location[LANG] || lastAccessInfo.location.en || lastAccessInfo.location.ko)) || '—';
+      const dev = lastAccessInfo.device || '—';
+      const time = fmtReqTime(lastAccessInfo.requestTimeMs);
+      // 휴대폰 '로그인 요청' 내용 미러 — 조작(취소·확인) 버튼은 제외, 정보/경고 문구만 표시
+      html += '<div class="lr-mirror">'
+        + '<div class="lr-title">' + t('reqTitle') + '</div>'
+        + '<div class="lr-rows">'
+        + '<div class="lr-row"><span class="lr-k">' + t('locLabel') + '</span><span class="lr-v">' + loc + '<span class="lr-sub">' + t('locNote') + '</span></span></div>'
+        + '<div class="lr-row"><span class="lr-k">' + t('devLabel') + '</span><span class="lr-v">' + dev + '</span></div>'
+        + '<div class="lr-row"><span class="lr-k">' + t('timeLabel') + '</span><span class="lr-v">' + time + '</span></div>'
+        + '</div>'
+        + '<div class="lr-warn">' + t('confirmWarn') + '</div>'
+        + '</div>';
+    }
+    html += '</div>';
+    box.innerHTML = html;
+  }
   const h = document.querySelector('#stage1 .qr-panel h2'); if (h) h.textContent = t('hubConnectedHeading');
 }
 
@@ -450,6 +502,12 @@ function renderPadB(pi) {
   html += '</div>';
   document.getElementById('padArea').innerHTML = html;
 }
+
+// 휴대폰이 로그인 요청 화면에 도달 → 접속 정보 수신(허브 '연결됨' 화면에 미러 표시)
+socket.on('mobile-info', ({ accessInfo }) => {
+  if (accessInfo) lastAccessInfo = accessInfo;
+  if (hubConnectedShown) showHubConnected();
+});
 
 socket.on('mobile-paired', () => {
   // '확인' 클릭(입력 단계 진입) 시점부터 만료 카운트다운 시작 — VNK에 표시

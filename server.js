@@ -193,6 +193,9 @@ app.get('/api/pair/:sid', async (req, res) => {
   // 접속 위치(IP 지오) 조회가 끝날 때까지 잠깐 대기 (최대 2.5초)
   try { await Promise.race([session.geoPromise, new Promise(r => setTimeout(r, 2500))]); } catch (_) {}
 
+  // PC(디스플레이)에도 휴대폰과 동일한 로그인 요청 정보 전달 — 허브 '연결됨' 화면에서 미러 표시
+  io.to(`pc-${sid}`).emit('mobile-info', { accessInfo: session.accessInfo });
+
   console.log(`[Pair] session=${sid} 휴대폰(VIK) 스캔(확인 대기)`);
 
   const user = users.get(session.userId);

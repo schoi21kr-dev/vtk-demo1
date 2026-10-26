@@ -605,6 +605,12 @@ document.getElementById('langKo').onclick = () => { setLanguage('ko'); socket.em
 document.getElementById('langEn').onclick = () => { setLanguage('en'); socket.emit('set-lang', { sid: sid, lang: 'en' }); };
 document.getElementById('btnHub').onclick = () => { socket.emit('home-hub', { sid }); showScanGuide(); };   // 집(홈) → PC는 허브 첫 화면으로, 이 휴대폰은 '카메라로 스캔' 안내 화면
 socket.on('mobile-to-scan', () => { showScanGuide(); });
+// 위치 조회가 늦게 끝나면 접속 위치만 갱신(확인 화면이 떠 있으면 다시 표시)
+socket.on('location-update', ({ location }) => {
+  if (!location) return;
+  if (pairData && pairData.accessInfo) pairData.accessInfo.location = location;
+  if (confirmShown) showConfirm(pairData && pairData.accessInfo);
+});
 applyLanguage();
 init();
 </script>

@@ -508,6 +508,12 @@ socket.on('mobile-info', ({ accessInfo }) => {
   if (accessInfo) lastAccessInfo = accessInfo;
   if (hubConnectedShown) showHubConnected();
 });
+// 위치 조회가 늦게 끝나면 접속 위치만 갱신(허브 '연결됨' 미러가 떠 있으면 다시 표시)
+socket.on('location-update', ({ location }) => {
+  if (!location) return;
+  if (lastAccessInfo) lastAccessInfo.location = location;
+  if (hubConnectedShown) showHubConnected();
+});
 
 socket.on('mobile-paired', () => {
   // '확인' 클릭(입력 단계 진입) 시점부터 만료 카운트다운 시작 — VNK에 표시

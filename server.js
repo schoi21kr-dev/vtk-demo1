@@ -97,6 +97,9 @@ function geoLookup(ip) {
 
 const sessions = new Map();
 const users = new Map();
+const hubReady = new Map();              // hubId → { mobileUrl, at } : hub-go 재전달용(휴대폰 재접속 대비)
+const HUB_READY_TTL_MS = 2 * 60 * 1000;  // 준비 상태 보관 시간(2분)
+setInterval(() => { const now = Date.now(); for (const [k, v] of hubReady) { if (now - v.at > HUB_READY_TTL_MS) hubReady.delete(k); } }, 60 * 1000);
 
 function generateSessionId() { return crypto.randomBytes(8).toString('hex'); }
 function generatePi() {
@@ -190,8 +193,14 @@ app.get('/api/pair/:sid', async (req, res) => {
   session.mobileConnected = true;
   session.status = 'waiting_for_mobile_input';
 
-  // 접속 위치(IP 지오) 조회가 끝날 때까지 잠깐 대기 (최대 2.5초)
-  try { await Promise.race([session.geoPromise, new Promise(r => setTimeout(r, 2500))]); } catch (_) {}
+  // 위치 조회를 기다리지 않고 화면을 먼저 띄운다(지연 제거). 조회가 끝나면 양쪽에 위치만 갱신 전송.
+  if (!session.geoEmitBound) {
+    session.geoEmitBound = true;
+    session.geoPromise.then(loc => {
+      io.to(`mobile-${sid}`).emit('location-update', { location: loc });
+      io.to(`pc-${sid}`).emit('location-update', { location: loc });
+    }).catch(() => {});
+  }
 
   // PC(디스플레이)에도 휴대폰과 동일한 로그인 요청 정보 전달 — 허브 '연결됨' 화면에서 미러 표시
   io.to(`pc-${sid}`).emit('mobile-info', { accessInfo: session.accessInfo });
@@ -264,9 +273,16 @@ io.on('connection', (socket) => {
   // 허브(디스플레이) ↔ 스캔(휴대폰) 페어링
   //  1) 휴대폰이 허브 QR 스캔 → hub-scanned → 디스플레이를 데모(/?h=)로 전환
   //  2) 디스플레이(데모)가 세션 생성 후 hub-session-ready(mobileUrl) 전송 → 휴대폰을 바로 인증 화면으로 이동(hub-go)
-  socket.on('join-hub', ({ hubId }) => { if (hubId) socket.join(`hub-${hubId}`); });
-  socket.on('hub-scanned', ({ hubId }) => { if (hubId) { io.to(`hub-${hubId}`).emit('hub-paired'); console.log(`[Hub] 휴대폰 스캔 → 디스플레이(${hubId}) 데모 전환`); } });
-  socket.on('hub-session-ready', ({ hubId, mobileUrl }) => { if (hubId && mobileUrl) { io.to(`hub-${hubId}`).emit('hub-go', { mobileUrl }); console.log(`[Hub] 디스플레이 세션 준비 → 휴대폰(${hubId}) 인증 화면 이동`); } });
+  // hub-go 재전달: PC 세션 준비 상태를 잠시 기억했다가, 휴대폰이 (끊겼다) 재접속해 허브 방에 들어오면 즉시 다시 보낸다
+  const sendPendingHubGo = (hubId) => {
+    const p = hubReady.get(hubId);
+    if (!p) return;
+    if (Date.now() - p.at > HUB_READY_TTL_MS) { hubReady.delete(hubId); return; }
+    socket.emit('hub-go', { mobileUrl: p.mobileUrl });
+  };
+  socket.on('join-hub', ({ hubId }) => { if (hubId) { socket.join(`hub-${hubId}`); sendPendingHubGo(hubId); } });
+  socket.on('hub-scanned', ({ hubId }) => { if (hubId) { socket.join(`hub-${hubId}`); io.to(`hub-${hubId}`).emit('hub-paired'); sendPendingHubGo(hubId); console.log(`[Hub] 휴대폰 스캔 → 디스플레이(${hubId}) 데모 전환`); } });
+  socket.on('hub-session-ready', ({ hubId, mobileUrl }) => { if (hubId && mobileUrl) { hubReady.set(hubId, { mobileUrl, at: Date.now() }); io.to(`hub-${hubId}`).emit('hub-go', { mobileUrl }); console.log(`[Hub] 디스플레이 세션 준비 → 휴대폰(${hubId}) 인증 화면 이동`); } });
   // 홈(집) 버튼: 눌린 기기가 요청 → 같은 세션의 PC는 허브 화면으로, 휴대폰은 카메라(재스캔)로 전환
   // 홈(집) 버튼: 데모 재시작 — PC가 새 세션을 만들어 '휴대폰 연결됨' 표시 후, 기존 휴대폰을 새 세션 승인(로그인 요청)화면으로 보냄
   // 홈(집) 버튼: 첫 화면으로 — PC는 허브 런처(/hub), 휴대폰은 '카메라로 스캔' 안내 화면으로

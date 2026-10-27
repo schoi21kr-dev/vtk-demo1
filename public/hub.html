@@ -13,6 +13,9 @@
   .lang-switch { display:flex; gap:4px; }
   .lang-switch button { padding:5px 12px; border:1px solid rgba(255,255,255,.35); background:transparent; color:#fff; border-radius:6px; font-size:14.4px; font-weight:bold; cursor:pointer; font-family:inherit; letter-spacing:1px; }
   .lang-switch button.on { background:var(--amber); border-color:var(--amber); color:var(--navy); }
+  .lang-switch .hub-btn { margin-left:8px; display:inline-flex; align-items:center; justify-content:center; padding:4px 10px; border-color:var(--amber); color:var(--amber); }
+  .lang-switch .hub-btn svg { display:block; }
+  .lang-switch .hub-btn:hover { background:var(--amber); color:var(--navy); }
   .panel { background:#fff; border-radius:16px; padding:30px 28px; box-shadow:0 2px 8px rgba(0,0,0,.06); border:1px solid var(--border); max-width:520px; width:100%; text-align:center; }
   .panel h2 { font-size:23px; color:var(--navy); margin-bottom:10px; }
   .panel p { font-size:16px; color:var(--text-mid); line-height:1.65; margin-bottom:20px; }
@@ -26,7 +29,7 @@
 <body>
   <div class="header">
     <h1 id="appTitle">VTK 데모 1</h1>
-    <div class="lang-switch"><button id="langKo" class="on">KO</button><button id="langEn">EN</button></div>
+    <div class="lang-switch"><button id="langKo" class="on">KO</button><button id="langEn">EN</button><button id="btnHub" class="hub-btn" title="홈" aria-label="홈"><svg viewBox="0 0 24 24" width="17" height="17" aria-hidden="true"><path fill="currentColor" d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg></button></div>
   </div>
   <div class="panel">
     <h2 id="hTitle">휴대폰으로 스캔하여 시작</h2>
@@ -71,6 +74,7 @@ function applyLang(){
 }
 document.getElementById('langKo').onclick=()=>{ LANG='ko'; const u=new URL(location.href); u.searchParams.set('lang','ko'); history.replaceState(null,'',u); applyLang(); };
 document.getElementById('langEn').onclick=()=>{ LANG='en'; const u=new URL(location.href); u.searchParams.set('lang','en'); history.replaceState(null,'',u); applyLang(); };
+document.getElementById('btnHub').onclick=()=>{ location.href='/hub?lang='+LANG; };   // 집(홈) → 허브 첫 화면으로 새로 시작
 function joinHub(){ socket.emit('join-hub',{ hubId }); }
 socket.on('connect', joinHub); joinHub();
 socket.on('hub-paired', () => {
